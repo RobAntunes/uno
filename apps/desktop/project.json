@@ -15,7 +15,6 @@
         "main": "apps/desktop/src/app/main.ts",
         "tsConfig": "apps/desktop/tsconfig.app.json",
         "assets": ["apps/desktop/src/assets"],
-        "isolatedConfig": true,
         "externalDependencies": ["electron"]
       },
       "configurations": {
