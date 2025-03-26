@@ -29,7 +29,7 @@ jobs:
         run: pnpm install
         
       - name: Run linting
-        run: pnpm lint . || echo "Linting found issues but continuing workflow"
+        run: pnpm lint || echo "Linting found issues but continuing workflow"
 
   # Run tests
   test:
@@ -86,10 +86,7 @@ jobs:
       - name: Build apps
         run: |
           # Build the web app
-          nx build uno
-          
-          # Build Electron app
-          nx build uno-electron
+          pnpm build
         
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
