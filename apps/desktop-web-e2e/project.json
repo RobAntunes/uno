@@ -1,0 +1,10 @@
+{
+  "name": "desktop-web-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/desktop-web-e2e/src",
+  "projectType": "application",
+  "tags": [],
+  "implicitDependencies": ["desktop-web"],
+  "// targets": "to see all targets run: nx show project desktop-web-e2e --web",
+  "targets": {}
+}

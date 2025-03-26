@@ -1,0 +1,55 @@
+{
+  "name": "desktop",
+  "": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/desktop/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/desktop",
+        "main": "apps/desktop/src/app/main.ts",
+        "tsConfig": "apps/desktop/tsconfig.app.json",
+        "assets": ["apps/desktop/src/assets"],
+        "isolatedConfig": true,
+        "externalDependencies": ["electron"]
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "desktop:build"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "desktop:build:production"
+        }
+      }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "electron-builder --config electron-builder.config.json --dir",
+            "forwardAllArgs": false
+          }
+        ],
+        "cwd": "dist/apps/desktop"
+      }
+    }
+  },
+  "tags": ["scope:desktop", "type:app"]
+}
