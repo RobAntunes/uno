@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "nx serve --project=web",
-    "lint": "nx run-many --target=lint --all",
+    "lint": "nx run-many --target=lint --projects=desktop,desktop-web -- --ignore-path .gitignore --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**' --ignore-pattern '.next/**' --ignore-pattern 'coverage/**'",
     "test": "nx run-many --target=test --all",
     "build": "nx run-many --target=build --all",
     "start:desktop": "nx run-many --target=serve --projects=desktop,desktop-web --parallel",

@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "start": "nx serve --projects=desktop,desktop-web target=start",
-    "lint": "nx run-many --target=lint --projects=desktop,desktop-web",
+    "lint": "nx run-many --target=lint --projects=desktop,desktop-web -- --ignore-pattern .gitignore --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**' --ignore-pattern '.next/**' --ignore-pattern 'coverage/**'",
     "test": "nx run-many --target=test --projects=desktop,desktop-web",
     "build": "nx run-many --target=build --projects=desktop,desktop-web",
     "build:desktop": "nx run-many --target=build --projects=desktop,desktop-web --parallel --configuration=production",
