@@ -18,7 +18,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22'
-          cache: 'pnpm'
           
       - name: Install pnpm
         uses: pnpm/action-setup@v2
@@ -41,7 +40,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
             
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
         
       - name: Run linting
         run: pnpm lint
