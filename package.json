@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "lint": "nx run-many --target=lint --projects=uno,uno-electron --parallel",
+    "test": "nx run-many --target=test --projects=uno,uno-electron --parallel",
     "postinstall": "electron-builder install-app-deps",
     "start": "nx run-many --target=serve --projects=uno,uno-electron --parallel",
     "build": "nx run-many --target=build --projects=uno,uno-electron --parallel --configuration=production",
@@ -83,5 +85,5 @@
       "nx"
     ]
   },
-  "packageManager": "pnpm@10.5.2"
+  "packageManager": "pnpm@10.7.0"
 }
