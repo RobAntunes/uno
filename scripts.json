@@ -1,5 +1,9 @@
 {
   "scripts": {
+    "start": "nx serve --project=web",
+    "lint": "nx run-many --target=lint --all",
+    "test": "nx run-many --target=test --all",
+    "build": "nx run-many --target=build --all",
     "start:desktop": "nx run-many --target=serve --projects=desktop,desktop-web --parallel",
     "build:desktop": "nx run-many --target=build --projects=desktop,desktop-web --parallel --configuration=production",
     "package:desktop": "nx run desktop:build --configuration=production && nx run desktop-web:build --configuration=production && nx run desktop:package"
