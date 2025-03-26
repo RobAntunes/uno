@@ -6,8 +6,8 @@
     "start": "nx serve --projects=desktop,desktop-web target=start",
     "lint": "nx run-many --target=lint --projects=desktop,desktop-web -- --ignore-pattern .gitignore --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**' --ignore-pattern '.next/**' --ignore-pattern 'coverage/**'",
     "test": "nx run-many --target=test --projects=desktop,desktop-web",
-    "build": "nx run-many --target=build --projects=desktop,desktop-web",
-    "build:desktop": "nx run-many --target=build --projects=desktop,desktop-web --parallel --configuration=production",
+    "build": "nx run-many --target=build --projects=desktop-web && nx run desktop:build",
+    "build:desktop": "nx run desktop-web:build --configuration=production && nx run desktop:build --configuration=production",
     "start:desktop": "nx run-many --target=serve --projects=desktop,desktop-web --parallel",
     "package:desktop": "nx run desktop:build --configuration=production && nx run desktop-web:build --configuration=production && nx run desktop:package"
   },
@@ -90,5 +90,6 @@
       "nx",
       "sharp"
     ]
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

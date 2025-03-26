@@ -3,9 +3,9 @@
     "start": "nx serve --project=web",
     "lint": "nx run-many --target=lint --projects=desktop,desktop-web -- --ignore-path .gitignore --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**' --ignore-pattern '.next/**' --ignore-pattern 'coverage/**'",
     "test": "nx run-many --target=test --all",
-    "build": "nx run-many --target=build --all",
+    "build": "nx run-many --target=build --projects=desktop-web && nx run desktop:build",
     "start:desktop": "nx run-many --target=serve --projects=desktop,desktop-web --parallel",
-    "build:desktop": "nx run-many --target=build --projects=desktop,desktop-web --parallel --configuration=production",
+    "build:desktop": "nx run desktop-web:build --configuration=production && nx run desktop:build --configuration=production",
     "package:desktop": "nx run desktop:build --configuration=production && nx run desktop-web:build --configuration=production && nx run desktop:package"
   }
 }

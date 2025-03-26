@@ -5,21 +5,28 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/webpack:webpack",
+      "executor": "@nx/vite:build",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "target": "node",
-        "compiler": "tsc",
         "outputPath": "dist/apps/desktop",
         "main": "apps/desktop/src/app/main.ts",
         "tsConfig": "apps/desktop/tsconfig.app.json",
-        "assets": ["apps/desktop/src/assets"],
-        "externalDependencies": ["electron"]
+        "assets": [
+          "apps/desktop/src/assets",
+          {
+            "input": ".",
+            "glob": "electron-builder.config.json",
+            "output": "."
+          }
+        ]
       },
       "configurations": {
-        "development": {},
+        "development": {
+          "mode": "development"
+        },
         "production": {
+          "mode": "production",
           "optimization": true,
           "extractLicenses": true,
           "inspect": false
@@ -42,7 +49,7 @@
       "options": {
         "commands": [
           {
-            "command": "electron-builder --config electron-builder.config.json --dir",
+            "command": "echo '{\"name\":\"uno-desktop\",\"version\":\"1.0.0\",\"description\":\"Uno Desktop App\",\"author\":\"Uno Team\",\"main\":\"main.js\",\"devDependencies\":{\"electron\":\"35.1.0\"}}' > package.json && electron-builder --config ../../../electron-builder.config.json --dir",
             "forwardAllArgs": false
           }
         ],

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge } from 'electron';
 
 // Expose protected methods that allow the renderer process to use
 // specific electron APIs without exposing the entire API
