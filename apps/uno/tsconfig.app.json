@@ -17,6 +17,8 @@
     "app/**/*.tsx",
     "app/**/*.js",
     "app/**/*.jsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
     "**/.server/**/*.ts",
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",
