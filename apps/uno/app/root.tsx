@@ -19,6 +19,7 @@ import AppSidebar from "./components/ui/app-sidebar";
 import FileExplorer from "./components/file-explorer/FileExplorer";
 import { Button } from "./components/ui/Button";
 import { PanelLeftClose, PanelLeftOpen, Files } from "lucide-react";
+import { AgentProvider } from "./context/agent-context";
 
 export const meta: MetaFunction = () => [
   {
@@ -77,19 +78,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
             )}
 
-            <div className="flex-1 h-full overflow-y-auto">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
-                className="absolute top-2 right-2 z-20 h-8 w-8"
-                title={isFileExplorerOpen ? "Hide Files" : "Show Files"}
-              >
-                <Files className="h-4 w-4" />
-              </Button>
+            <AgentProvider>
+              <div className="flex-1 h-full overflow-y-auto">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
+                  className="absolute top-2 right-2 z-20 h-8 w-8"
+                  title={isFileExplorerOpen ? "Hide Files" : "Show Files"}
+                >
+                  <Files className="h-4 w-4" />
+                </Button>
 
-              {children}
-            </div>
+                {children}
+              </div>
+            </AgentProvider>
 
           </SidebarProvider>
           <Toaster />

@@ -3,6 +3,10 @@ import { Outlet, useLocation, useParams } from 'react-router-dom';
 // Adjust paths relative to layouts/
 import AgentSidebar from '../components/ui/agent-sidebar';
 import { TeamStructureItem, teamData } from '../components/ui/app-sidebar'; // Ensure teamData is exported
+import { useAgent } from '../context/agent-context'; // Import useAgent
+
+// Add the handle export here
+export const handle = { isAgentRoute: true };
 
 // Helper function to find agent data - adjust logic as needed for your data structure/fetching
 function findAgentData(teamId: string | undefined, agentId: string | undefined, data: TeamStructureItem[]): { agentChildren: TeamStructureItem[] | null, basePath: string | null, agentName: string | null } {
@@ -24,8 +28,18 @@ function findAgentData(teamId: string | undefined, agentId: string | undefined, 
 export default function AgentSectionLayout() {
     const { teamId, agentId } = useParams<{ teamId: string; agentId: string }>();
     const location = useLocation(); // Keep location if needed for sidebar active state
+    const { setAgentName } = useAgent(); // Get setter from context
 
     const { agentChildren, basePath, agentName } = findAgentData(teamId, agentId, teamData);
+
+    // Set agent name in context when component mounts or agent changes
+    React.useEffect(() => {
+        setAgentName(agentName);
+        // Clear agent name when component unmounts
+        return () => {
+            setAgentName(null);
+        };
+    }, [agentName, setAgentName]);
 
     if (!agentChildren || !basePath) {
         console.warn(`AgentSectionLayout: Could not find agent data for teamId: ${teamId}, agentId: ${agentId}`);
