@@ -184,13 +184,15 @@ function TeamTreeItem({ item, depth = 0, isCollapsed, getNavLinkClass }: TeamTre
 
 // --- END: Added for Recursive Team Structure ---
 
-// Define props type for AppSidebar
+// Define props type for AppSidebar, adding props for state control
 interface AppSidebarProps {
   side?: "left" | "right";
   defaultWidth?: number;
   minWidth?: number;
   maxWidth?: number;
-  defaultCollapsed?: boolean;
+  // Remove defaultCollapsed, state is controlled from parent now
+  isCollapsed: boolean;                 // Accept state from parent
+  setIsCollapsed: (value: boolean | ((prevState: boolean) => boolean)) => void; // Accept setter from parent
   [key: string]: any;
 }
 
@@ -209,10 +211,15 @@ export function AppSidebar({
   defaultWidth = DEFAULT_WIDTH,
   minWidth = MIN_WIDTH,
   maxWidth = MAX_WIDTH,
-  defaultCollapsed = false,
+  // Receive state and setter from props
+  isCollapsed,
+  setIsCollapsed,
   ...props
 }: AppSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
+  // Remove internal state for isCollapsed
+  // const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
+
+  // State for dynamic width during resize still needed
   const [sidebarWidth, setSidebarWidth] = React.useState(isCollapsed ? MIN_WIDTH : defaultWidth);
   const [isDragging, setIsDragging] = React.useState(false);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -248,32 +255,47 @@ export function AppSidebar({
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      // Add cursor style
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
     } else {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      // Remove cursor style
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     }
-
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      // Ensure cursor style is removed on unmount
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  // Effect to update sidebarWidth when isCollapsed prop changes from parent
   React.useEffect(() => {
-    setSidebarWidth(isCollapsed ? MIN_WIDTH : Math.max(minWidth, Math.min(maxWidth, sidebarWidth)));
-  }, [isCollapsed, minWidth, maxWidth]);
+    // When collapsing, set to MIN_WIDTH.
+    // When expanding, reset to defaultWidth.
+    setSidebarWidth(isCollapsed ? MIN_WIDTH : defaultWidth);
+  }, [isCollapsed, minWidth, maxWidth, defaultWidth]); // Update dependencies
 
+  // Use the passed-in setIsCollapsed for the toggle button
   const toggleCollapse = () => {
+    // Use the function form of the setter if needed, or just toggle
     setIsCollapsed(prevCollapsed => !prevCollapsed);
   };
 
   return (
     <div
       ref={sidebarRef}
+      // Use the sidebarWidth state for dynamic width
       style={{ width: `${sidebarWidth}px` }}
       className={`relative flex flex-col h-screen bg-background border-r transition-width duration-300 ease-in-out group ${isCollapsed ? 'items-center' : ''}`}
       {...props}
     >
+      {/* Collapse/Expand button now uses toggleCollapse which uses the passed-in setter */}
       <Button
         variant="ghost"
         size="icon"
@@ -284,6 +306,7 @@ export function AppSidebar({
         {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
       </Button>
 
+      {/* Resizer handle - remains the same */}
       {!isCollapsed && (
         <div
           onMouseDown={handleMouseDown}
@@ -296,6 +319,7 @@ export function AppSidebar({
         </div>
       )}
 
+      {/* Sidebar content - pass isCollapsed down */}
       <div className={`flex flex-col h-full overflow-hidden pt-16 ${isCollapsed ? 'items-center w-full' : 'p-4'}`}>
         {!isCollapsed && (
           <div className={`flex items-center mb-4 justify-start`}>
@@ -346,24 +370,22 @@ export function AppSidebar({
 
           {!isCollapsed && <Separator className="my-4" />}
 
-          {/* Teams Group (Recursive) */}
+          {/* Teams Group - pass isCollapsed down */}
           <SidebarGroup className={isCollapsed ? 'flex flex-col items-center' : ''}>
-            {/* Conditionally render label only when not collapsed */}
             {!isCollapsed && <SidebarGroupLabel>Teams</SidebarGroupLabel>}
-            {/* Render the recursive tree. Start mapping from teamData[0]?.children
-                because teamData[0] is the root "Teams" item itself. */}
             {teamData[0]?.children?.map((team, index) => (
               <TeamTreeItem
-                 key={`${team.path}-${index}`}
-                 item={team}
-                 depth={1} // Start actual teams at depth 1 for padding
-                 isCollapsed={isCollapsed}
-                 getNavLinkClass={getNavLinkClass}
-               />
+                key={`${team.path}-${index}`}
+                item={team}
+                depth={1}
+                isCollapsed={isCollapsed} // Pass down
+                getNavLinkClass={getNavLinkClass}
+              />
             ))}
           </SidebarGroup>
         </nav>
 
+        {/* Footer/Settings Link - based on isCollapsed */}
         {!isCollapsed && (
           <div className="mt-auto p-4 border-t">
             <NavLink to="/settings" className={getNavLinkClass}>

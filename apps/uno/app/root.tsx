@@ -1,4 +1,6 @@
 import { AuthProvider } from "react-oidc-context";
+import * as React from "react";
+import { useState } from "react";
 import {
   Links,
   type LinksFunction,
@@ -13,8 +15,10 @@ import "../styles.css";
 import { AppNav } from "./app-nav";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "./components/ui/sidebar";
-import { Sidebar } from "./components/ui/sidebar";
 import AppSidebar from "./components/ui/app-sidebar";
+import FileExplorer from "./components/file-explorer/FileExplorer";
+import { Button } from "./components/ui/Button";
+import { PanelLeftClose, PanelLeftOpen, Files } from "lucide-react";
 
 export const meta: MetaFunction = () => [
   {
@@ -44,7 +48,13 @@ const cognitoAuthConfig = {
   scope: "email openid phone",
 };
 
+const SIDEBAR_DEFAULT_WIDTH = 280;
+const SIDEBAR_MIN_WIDTH = 50;
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [isAppSidebarCollapsed, setIsAppSidebarCollapsed] = useState(false);
+  const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
+
   return (
     <AuthProvider {...cognitoAuthConfig}>
       <html lang="en" className="h-screen overflow-hidden">
@@ -54,10 +64,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Meta />
           <Links />
         </head>
-        <body className="h-full bg-background text-foreground">
+        <body className="h-full bg-background text-foreground flex">
           <SidebarProvider>
-            <AppSidebar />
-            {children}
+            <AppSidebar
+              isCollapsed={isAppSidebarCollapsed}
+              setIsCollapsed={setIsAppSidebarCollapsed}
+            />
+
+            {isFileExplorerOpen && (
+              <div className="w-72 border-r bg-muted/40 overflow-y-auto flex-shrink-0">
+                <FileExplorer />
+              </div>
+            )}
+
+            <div className="flex-1 h-full overflow-y-auto">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
+                className="absolute top-2 right-2 z-20 h-8 w-8"
+                title={isFileExplorerOpen ? "Hide Files" : "Show Files"}
+              >
+                <Files className="h-4 w-4" />
+              </Button>
+
+              {children}
+            </div>
+
           </SidebarProvider>
           <Toaster />
           <ScrollRestoration />

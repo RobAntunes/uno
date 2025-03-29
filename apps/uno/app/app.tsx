@@ -1,7 +1,5 @@
 import * as React from "react";
 import { Separator } from "@radix-ui/react-separator";
-// Remove AppNav import if no longer used
-// import { AppNav } from "./app-nav";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,17 +8,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./components/ui/breadcrumb";
-import { SidebarInset } from "./components/ui/sidebar"; // Assuming SidebarInset handles the main sidebar space
-import {
-  Outlet,
-  useMatches,
-  Link,
-  UIMatch,
-  // useLocation, // Removed
-} from "react-router-dom";
-
-// Removed AgentSidebar import
-// Removed teamData and TeamStructureItem imports
+// Remove SidebarInset import
+import { Outlet, useMatches, Link, UIMatch } from "react-router-dom";
+// Remove FileExplorer and related imports (useState, Button, icons)
 
 // Define the expected shape of the route handle
 interface RouteHandle {
@@ -36,9 +26,9 @@ function hasBreadcrumb(match: UIMatch): match is UIMatch<unknown, RouteHandle> {
 
 export default function App() {
   const matches = useMatches();
-  // Removed location and agent data calculation
+  // Remove file explorer state
+  // const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
 
-  // Generate breadcrumbs (existing logic remains)
   const crumbs = matches
     .filter(hasBreadcrumb)
     .map((match, index, arr) => {
@@ -54,9 +44,9 @@ export default function App() {
               </BreadcrumbPage>
             ) : (
               <BreadcrumbLink asChild>
-                 <Link to={path} className="text-muted-foreground hover:text-foreground">
-                   {breadcrumbText}
-                 </Link>
+                <Link to={path} className="text-muted-foreground hover:text-foreground">
+                  {breadcrumbText}
+                </Link>
               </BreadcrumbLink>
             )}
           </BreadcrumbItem>
@@ -66,30 +56,24 @@ export default function App() {
     });
 
   return (
-    // SidebarInset likely manages the space for the main AppSidebar
-    <SidebarInset className="flex flex-col h-screen overflow-hidden"> {/* Ensure flex-col and height */}
-      {/* Header remains the same */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white dark:bg-gray-950">
+    // Removed outer layout div
+    <>
+      {/* Make header sticky, add background */}
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background sticky top-0 z-10">
+        {/* Removed File Explorer Toggle Button */}
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb>
           <BreadcrumbList>
-            {/* Add separator logic if needed */}
             {crumbs.length > 0 && crumbs[0].key !== 'root' && <BreadcrumbSeparator className="hidden md:block" />}
             {crumbs}
           </BreadcrumbList>
         </Breadcrumb>
       </header>
 
-      {/* Main content area wrapper - Now just contains the main Outlet */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* AgentSidebar rendering removed from here */}
-
-        {/* Main content outlet - Takes remaining space */}
-        {/* Child routes defined in routes.tsx will render here */}
-        <main className="flex-1 overflow-auto p-4">
-          <Outlet />
-        </main>
-      </div>
-    </SidebarInset>
+      {/* Removed flex-1, parent div handles sizing */}
+      <main className="overflow-auto p-4">
+        <Outlet />
+      </main>
+    </>
   );
 }

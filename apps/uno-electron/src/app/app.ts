@@ -1,8 +1,9 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, app, WebContents } from 'electron';
 import { rendererAppName, rendererAppPort } from './constants';
 import { environment } from '../environments/environment';
 import { join } from 'path';
 import { format } from 'url';
+import * as chokidar from 'chokidar';
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -10,6 +11,7 @@ export default class App {
   static mainWindow: Electron.BrowserWindow | null;
   static application: Electron.App;
   static BrowserWindow: typeof BrowserWindow;
+  static fileWatcher: chokidar.FSWatcher | null = null;
 
   public static isDevelopmentMode() {
     const isEnvironmentSet: boolean = 'ELECTRON_IS_DEV' in process.env;
@@ -19,6 +21,50 @@ export default class App {
     return isEnvironmentSet ? getFromEnvironment : !environment.production;
   }
 
+  private static initFileWatcher() {
+    if (App.fileWatcher) {
+      console.log('[App Class] File watcher already initialized.');
+      return;
+    }
+
+    const watchPath = '.';
+    console.log(`[App Class] Initializing file watcher for path: ${watchPath}`);
+
+    try {
+      App.fileWatcher = chokidar.watch(watchPath, {
+        ignored: /(^|[\/\\])\../,
+        persistent: true,
+        ignoreInitial: true,
+        depth: 99,
+      });
+
+      const sendFileChange = (eventType: string, filePath: string) => {
+        console.log(`[App Class] File ${eventType}: ${filePath}`);
+        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+            App.mainWindow.webContents.send('file-changed', {
+                type: eventType,
+                path: filePath,
+            });
+        } else {
+            console.warn('[App Class] Main window not available to send file-changed event.');
+        }
+      };
+
+      App.fileWatcher
+        .on('add', (filePath) => sendFileChange('add', filePath))
+        .on('change', (filePath) => sendFileChange('change', filePath))
+        .on('unlink', (filePath) => sendFileChange('unlink', filePath))
+        .on('addDir', (filePath) => sendFileChange('addDir', filePath))
+        .on('unlinkDir', (filePath) => sendFileChange('unlinkDir', filePath))
+        .on('error', (error) => console.error(`[App Class] Watcher error: ${error}`))
+        .on('ready', () => console.log('[App Class] File watcher ready.'));
+
+    } catch (error) {
+        console.error('[App Class] Failed to initialize file watcher:', error);
+        App.fileWatcher = null;
+    }
+  }
+
   private static onWindowAllClosed() {
     if (process.platform !== 'darwin') {
       App.application.quit();
@@ -26,18 +72,14 @@ export default class App {
   }
 
   private static onReady() {
-    // This method will be called when Electron has finished
-    // initialization and is ready to create browser windows.
-    // Some APIs can only be used after this event occurs.
     if (rendererAppName) {
       App.initMainWindow();
       App.loadMainWindow();
+      App.initFileWatcher();
     }
   }
 
   private static onActivate() {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (App.mainWindow === null) {
       App.onReady();
     }
@@ -48,7 +90,6 @@ export default class App {
     const width = Math.min(1280, workAreaSize.width || 1280);
     const height = Math.min(720, workAreaSize.height || 720);
 
-    // Create the browser window.
     App.mainWindow = new BrowserWindow({
       width: width,
       height: height,
@@ -62,22 +103,16 @@ export default class App {
     App.mainWindow.setMenu(null);
     App.mainWindow.center();
 
-    // if main window is ready to show, close the splash window and show the main window
     App.mainWindow.once('ready-to-show', () => {
       App.mainWindow?.show();
     });
 
-    // Emitted when the window is closed.
     App.mainWindow.on('closed', () => {
-      // Dereference the window object, usually you would store windows
-      // in an array if your app supports multi windows, this is the time
-      // when you should delete the corresponding element.
       App.mainWindow = null;
     });
   }
 
   private static loadMainWindow() {
-    // load the index.html of the app.
     if (!App.application.isPackaged) {
       App.mainWindow?.loadURL(`http://localhost:${rendererAppPort}`);
     } else {
@@ -92,16 +127,11 @@ export default class App {
   }
 
   static main(app: Electron.App, browserWindow: typeof BrowserWindow) {
-    // we pass the Electron.App object and the
-    // Electron.BrowserWindow into this function
-    // so this class has no dependencies. This
-    // makes the code easier to write tests for
-
     App.BrowserWindow = browserWindow;
     App.application = app;
 
-    App.application.on('window-all-closed', App.onWindowAllClosed); // Quit when all windows are closed.
-    App.application.on('ready', App.onReady); // App is ready to load data
-    App.application.on('activate', App.onActivate); // App is activated
+    App.application.on('window-all-closed', App.onWindowAllClosed);
+    App.application.on('ready', App.onReady);
+    App.application.on('activate', App.onActivate);
   }
 }
