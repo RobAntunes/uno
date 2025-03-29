@@ -1,4 +1,5 @@
 import * as React from "react";
+import { lazy, Suspense } from "react";
 import { Separator } from "@radix-ui/react-separator";
 import {
   Breadcrumb,
@@ -10,6 +11,10 @@ import {
 } from "./components/ui/breadcrumb";
 // Remove SidebarInset import
 import { Outlet, useMatches, Link, UIMatch } from "react-router-dom";
+// Import ChatSection, ChatMessages, ChatInput
+import { ChatSection, ChatMessages, ChatInput } from "@llamaindex/chat-ui";
+// Use React.lazy for client-side only import
+const TerminalView = lazy(() => import("./components/terminal-view"));
 // Remove FileExplorer and related imports (useState, Button, icons)
 
 // Define the expected shape of the route handle
@@ -29,10 +34,21 @@ export default function App() {
   // Remove file explorer state
   // const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
 
+  // Placeholder chat handler to satisfy ChatSection prop types
+  const mockChatHandler = {
+    input: "",
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    setInput: () => {},
+    isLoading: false,
+    messages: [],
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    append: async () => null, // Return null to match type
+  };
+
   const crumbs = matches
     .filter(hasBreadcrumb)
     .map((match, index, arr) => {
-      const breadcrumbText = match.handle!.breadcrumb;
+      const breadcrumbText = match.handle?.breadcrumb;
       const isLast = index === arr.length - 1;
       const path = match.pathname;
       return (
@@ -70,9 +86,31 @@ export default function App() {
         </Breadcrumb>
       </header>
 
-      {/* Removed flex-1, parent div handles sizing */}
-      <main className="overflow-auto p-4">
-        <Outlet />
+      {/* Adjust main section for chat UI */}
+      <main className="flex flex-col h-[calc(100vh-4rem)]"> {/* Use flex column and calculate height */}
+        <div className="flex-grow overflow-y-auto p-4"> {/* Container for scrollable route content */}
+          <Outlet />
+        </div>
+
+        {/* Chat UI Area - Wrapped with ChatSection */} 
+        <div className="flex flex-col border-t flex-grow"> {/* Make chat area grow */} 
+          <ChatSection handler={mockChatHandler}> {/* ChatSection manages context */} 
+            {/* Messages Area (Growable) */}
+            <div className="flex-grow overflow-y-auto p-4"> 
+              <ChatMessages />
+            </div>
+            {/* Terminal Area (Fixed Height) - Load lazily */} 
+            <div className="h-40 flex-shrink-0 border-t border-b"> {/* Fixed height, shrink-0 prevents shrinking */}
+              <Suspense fallback={<div className="w-full h-full bg-muted animate-pulse" />}> {/* Show placeholder during load */} 
+                <TerminalView />
+              </Suspense>
+            </div>
+            {/* Input Area (Fixed Height) */}
+            <div className="p-4 flex-shrink-0"> {/* Keep input at bottom */}
+              <ChatInput />
+            </div>
+          </ChatSection>
+        </div>
       </main>
     </>
   );
