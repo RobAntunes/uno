@@ -136,7 +136,13 @@ const FileExplorer: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    fetchDirectory('.');
+    // Delay initial fetch slightly to potentially avoid startup race conditions
+    const timer = setTimeout(() => {
+      fetchDirectory('.');
+    }, 500); // 500ms delay
+
+    // Cleanup timer on unmount
+    return () => clearTimeout(timer);
   }, [fetchDirectory]);
 
   // Set up file change listener

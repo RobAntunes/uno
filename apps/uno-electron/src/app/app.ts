@@ -28,11 +28,17 @@ export default class App {
     }
 
     const watchPath = '.';
-    console.log(`[App Class] Initializing file watcher for path: ${watchPath}`);
+    console.log(`[App Class] Initializing file watcher. CWD: ${process.cwd()}, Watch Path: ${watchPath}`);
 
     try {
       App.fileWatcher = chokidar.watch(watchPath, {
-        ignored: /(^|[\/\\])\../,
+        ignored: [
+          /(^|[\\/\\])\\../,
+          /node_modules([\\/\\]|$)/,
+          /dist([\\/\\]|$)/,
+          /\.cache([\\/\\]|$)/,
+          /build([\\/\\]|$)/,
+        ],
         persistent: true,
         ignoreInitial: true,
         depth: 99,

@@ -29,12 +29,17 @@ ipcMain.handle('read-directory', async (event: IpcMainInvokeEvent, requestedPath
   console.log(`[Main Process] Resolved path to: ${absolutePath}`);
 
   try {
-    const dirents = await fs.readdir(absolutePath, { withFileTypes: true });
     const entries: FSEntry[] = [];
+    const ignoredNames = new Set(['.git', 'node_modules', 'dist',
 
-    for (const dirent of dirents) {
+
+    ]); // Add folders to ignore here
+
+    const dir = await fs.opendir(absolutePath);
+    for await (const dirent of dir) {
       // Potentially filter out hidden files, specific types, etc.
-      // if (dirent.name.startsWith('.')) continue;
+      if (dirent.name.startsWith('.') && dirent.name !== '.') continue; // Keep ignoring hidden, except root itself if requested
+      if (ignoredNames.has(dirent.name)) continue; // Skip ignored directories
 
       entries.push({
         name: dirent.name,
