@@ -3,17 +3,25 @@ import {
   BarChart,
   ChevronLeft,
   ChevronRight,
-  File,
+  CodeSquare,
+  Database,
   FileText,
-  Folder,
+  FolderKanban,
   GripVertical,
   Home,
-  Layers,
+  LayoutDashboard,
+  Lightbulb,
+  LogIn,
+  List,
+  ArrowRightLeft,
   Search,
   Settings,
-  Star,
+  Sidebar,
   Users,
+  User,
+  Wrench,
 } from "lucide-react";
+import { NavLink } from 'react-router-dom';
 
 import {
   Collapsible,
@@ -22,7 +30,6 @@ import {
 } from "../../components/ui/collapsible";
 import { Button } from "../../components/ui/Button";
 import {
-  Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -34,58 +41,148 @@ import {
   SidebarMenuSub,
   SidebarRail,
 } from "../../components/ui/sidebar";
+import { Separator } from "./separator";
 
-// Define the directory structure data
-const data = {
-  tree: [
-    ["Dashboard", []],
-    ["Files", []],
-    ["Teams", [
-      ["Development", []],
-      ["Design", []],
-      ["Marketing", []],
-      ["Sales", [
-        ["Maverick", [
-          ["Tasks", []],
-          ["Tools", []],
-          ["Flows", []],
-          ["Memory", []],
-        ]],
-        ["Luna", [
-          ["Tasks", []],
-          ["Tools", []],
-          ["Flows", []],
-          ["Memory", []],
-        ]],
-        ["Felix", [
-          ["Tasks", []],
-          ["Tools", []],
-          ["Flows", []],
-          ["Memory", []],
-        ]],
-      ]],
-      ["Product", []],
-      ["Research", []],
-    ]],
-  ],
-};
+// --- START: Added for Recursive Team Structure ---
 
-// Define the type for a tree item and its props
-type TreeItem = [string, TreeItem[]];
-interface TreeProps {
-  item: TreeItem;
-  depth?: number;
+// Define the types for our hierarchical data
+export interface TeamStructureItem {
+  name: string;
+  path: string; // URL path for NavLink
+  icon: React.ElementType; // Lucide icon component
+  children?: TeamStructureItem[];
 }
 
-// Explicitly type keys for iconMap
-const iconMap: { [key: string]: React.ReactNode } = {
-  "Dashboard": <Home className="size-4 text-muted-foreground" />,
-  "Files": <FileText className="size-4 text-muted-foreground" />,
-  "Teams": <Users className="size-4 text-muted-foreground" />,
-  "Sales": <BarChart className="size-4 text-muted-foreground" />,
-  "Product": <Layers className="size-4 text-muted-foreground" />,
-  "Research": <Search className="size-4 text-muted-foreground" />,
+// Define the actual team structure data (Hardcoded for now, replace with dynamic data later)
+export const teamData: TeamStructureItem[] = [
+  {
+    name: "Teams", // This top-level item might be handled slightly differently or skipped in rendering loop if needed
+    path: "/teams",
+    icon: Users,
+    children: [
+      {
+        name: "Sales",
+        path: "/teams/sales",
+        icon: BarChart,
+        children: [
+          {
+            name: "Maverick",
+            path: "/teams/sales/maverick", // Base path for agent
+            icon: User,
+            children: [
+              { name: "Tasks", path: "/teams/sales/maverick/tasks", icon: List },
+              { name: "Tools", path: "/teams/sales/maverick/tools", icon: Wrench },
+              { name: "Flows", path: "/teams/sales/maverick/flows", icon: ArrowRightLeft },
+              { name: "Memory", path: "/teams/sales/maverick/memory", icon: Lightbulb },
+            ],
+          },
+          {
+            name: "Luna",
+            path: "/teams/sales/luna",
+            icon: User,
+            children: [
+              { name: "Tasks", path: "/teams/sales/luna/tasks", icon: List },
+              { name: "Tools", path: "/teams/sales/luna/tools", icon: Wrench },
+              { name: "Flows", path: "/teams/sales/luna/flows", icon: ArrowRightLeft },
+              { name: "Memory", path: "/teams/sales/luna/memory", icon: Lightbulb },
+            ],
+          },
+          {
+            name: "Felix",
+            path: "/teams/sales/felix",
+            icon: User,
+            children: [
+              { name: "Tasks", path: "/teams/sales/felix/tasks", icon: List },
+              { name: "Tools", path: "/teams/sales/felix/tools", icon: Wrench },
+              { name: "Flows", path: "/teams/sales/felix/flows", icon: ArrowRightLeft },
+              { name: "Memory", path: "/teams/sales/felix/memory", icon: Lightbulb },
+            ],
+          },
+        ],
+      },
+      // Add other teams like Development, Design etc. here following the same structure
+    ],
+  }
+];
+
+// Simplified isAgent check for now (assumes agents are depth 2 in current data)
+// A more robust check (e.g., based on children names or an explicit type) is better long-term
+const isAgentNode = (item: TeamStructureItem, depth: number) => {
+  // Check if it has children AND those children look like agent sub-pages (e.g., 'Tasks')
+  return depth >= 1 && item.children && item.children.length > 0 && item.children.some(child => ['Tasks', 'Tools', 'Flows', 'Memory'].includes(child.name));
 };
+
+// Recursive component to render the team structure
+interface TeamTreeItemProps {
+  item: TeamStructureItem;
+  depth?: number;
+  isCollapsed?: boolean; // Pass collapsed state down
+  getNavLinkClass: (props: { isActive: boolean }) => string; // Pass helper function
+}
+
+function TeamTreeItem({ item, depth = 0, isCollapsed, getNavLinkClass }: TeamTreeItemProps) {
+  const { name, path, icon: Icon, children } = item;
+  const hasChildren = children && children.length > 0;
+  const isAgent = isAgentNode(item, depth); // Check if it's an agent node
+
+  const paddingLeft = isCollapsed || depth === 0 ? undefined : `${depth * 1.25}rem`;
+
+  if (hasChildren) {
+    // If it's an agent, render only the NavLink trigger, not the collapsible content
+    if (isAgent) {
+       return (
+        <SidebarMenuItem className={`w-full ${isCollapsed ? 'justify-center' : ''}`} style={{ paddingLeft }}>
+          {/* Link to agent's base path, use 'end' to only activate exactly on this path */}
+          <NavLink to={path} end className={({isActive}) => `${getNavLinkClass({isActive})} w-full ${isCollapsed ? 'justify-center' : ''}`}>
+            <Icon className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && <span className="ml-2">{name}</span>}
+            {/* No chevron needed as clicking agent loads secondary panel */}
+          </NavLink>
+        </SidebarMenuItem>
+      );
+    }
+
+    // Otherwise (like "Sales" team), render the full Collapsible with children
+    return (
+      <Collapsible defaultOpen={depth < 2} className="group/collapsible">
+        <CollapsibleTrigger asChild>
+          <SidebarMenuItem className={`w-full ${isCollapsed ? 'justify-center' : ''}`} style={{ paddingLeft }}>
+            {/* Link for the team level, e.g. /teams/sales */}
+            <NavLink to={path} end={depth === 0} /* Use 'end' carefully based on routing */ className={({isActive}) => `${getNavLinkClass({isActive})} w-full ${isCollapsed ? 'justify-center' : ''}`}>
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!isCollapsed && <span className="flex-1 ml-2">{name}</span>}
+              {!isCollapsed && <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0 transition-transform duration-200 group-[&[data-state=open]]:rotate-90" />}
+            </NavLink>
+          </SidebarMenuItem>
+        </CollapsibleTrigger>
+        <CollapsibleContent className={`overflow-hidden transition-all duration-300 ease-in-out data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down ${isCollapsed ? 'hidden' : ''}`}>
+          {/* Render children recursively */}
+          {children.map((child, index) => (
+            <TeamTreeItem
+              key={`${path}-${child.name}-${index}`}
+              item={child}
+              depth={depth + 1} // Increment depth
+              isCollapsed={isCollapsed}
+              getNavLinkClass={getNavLinkClass}
+            />
+          ))}
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  } else {
+    // Leaf nodes (like Settings, or potentially agent sub-pages if rendered differently)
+    return (
+       <SidebarMenuItem className={isCollapsed ? 'my-1 justify-center' : ''} style={{ paddingLeft }}>
+         <NavLink to={path} className={getNavLinkClass}>
+          <Icon className="h-5 w-5 flex-shrink-0" />
+          {!isCollapsed && <span className="ml-2">{name}</span>}
+        </NavLink>
+      </SidebarMenuItem>
+    );
+  }
+}
+
+// --- END: Added for Recursive Team Structure ---
 
 // Define props type for AppSidebar
 interface AppSidebarProps {
@@ -94,13 +191,18 @@ interface AppSidebarProps {
   minWidth?: number;
   maxWidth?: number;
   defaultCollapsed?: boolean;
-  // Include other props if necessary, e.g., from React.HTMLAttributes<HTMLDivElement>
-  [key: string]: any; // Allow other props for simplicity
+  [key: string]: any;
 }
 
 const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
+const MIN_WIDTH = 50;
 const MAX_WIDTH = 400;
+
+// Helper function for NavLink className
+const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+    isActive ? 'bg-muted text-primary font-semibold' : 'text-muted-foreground'
+  }`;
 
 export function AppSidebar({
   side = "left",
@@ -111,11 +213,12 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
-  const [sidebarWidth, setSidebarWidth] = React.useState(defaultWidth);
+  const [sidebarWidth, setSidebarWidth] = React.useState(isCollapsed ? MIN_WIDTH : defaultWidth);
   const [isDragging, setIsDragging] = React.useState(false);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isCollapsed) return;
     console.log("Sidebar Drag: Mouse Down");
     e.preventDefault();
     e.stopPropagation();
@@ -123,16 +226,16 @@ export function AppSidebar({
   };
 
   const handleMouseMove = React.useCallback((e: MouseEvent) => {
-    if (!isDragging || !sidebarRef.current) return;
+    if (!isDragging || !sidebarRef.current || isCollapsed) return;
     console.log("Sidebar Drag: Mouse Move");
     let newWidth = side === "left"
       ? e.clientX - sidebarRef.current.getBoundingClientRect().left
       : sidebarRef.current.getBoundingClientRect().right - e.clientX;
 
-    newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth)); // Clamp width
+    newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
     console.log("Sidebar Drag: New Width =", newWidth);
     setSidebarWidth(newWidth);
-  }, [isDragging, minWidth, maxWidth, side]);
+  }, [isDragging, minWidth, maxWidth, side, isCollapsed]);
 
   const handleMouseUp = React.useCallback(() => {
     if (isDragging) {
@@ -156,134 +259,128 @@ export function AppSidebar({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  React.useEffect(() => {
+    setSidebarWidth(isCollapsed ? MIN_WIDTH : Math.max(minWidth, Math.min(maxWidth, sidebarWidth)));
+  }, [isCollapsed, minWidth, maxWidth]);
+
   const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-    // Optionally reset width when collapsing/expanding
-    // if (!isCollapsed) setSidebarWidth(defaultWidth);
+    setIsCollapsed(prevCollapsed => !prevCollapsed);
   };
 
   return (
-    // Apply dynamic width, transition, and ref. Hide overflow when dragging.
-    <Sidebar
+    <div
       ref={sidebarRef}
-      side={side}
-      className={`bg-background relative transition-all duration-300 ease-in-out !border-none shadow-lg ${
-        isDragging ? "overflow-hidden select-none" : ""
-      }`}
-      style={{ width: isCollapsed ? "auto" : sidebarWidth }} // Width applied here
+      style={{ width: `${sidebarWidth}px` }}
+      className={`relative flex flex-col h-screen bg-background border-r transition-width duration-300 ease-in-out group ${isCollapsed ? 'items-center' : ''}`}
       {...props}
     >
-      {/* Hide content when collapsed, make scrollable, ensure height constraint */}
-      <SidebarContent className={`${isCollapsed ? "hidden" : "block"} h-full`}>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="overflow-x-auto w-full py-2">
-              {/* Wrapper div to enforce minimum width based on content */}
-              <div style={{ minWidth: "max-content" }} className="h-full">
-                {data.tree.map((item, index) => (
-                  <Tree key={index} item={item as TreeItem} depth={0} />
-                ))}
-              </div>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`absolute top-4 ${side === 'left' ? (isCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-2') : (isCollapsed ? 'right-1/2 translate-x-1/2' : 'left-2')} h-8 w-8 z-20 transition-all duration-300`}
+        onClick={toggleCollapse}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+      </Button>
 
-      {/* Keep Rail visible, add collapse toggle */}
-      <SidebarRail className="flex flex-col items-center justify-between py-4">
-        {/* Example: Add other rail items if needed */}
-        <div></div>
-        {/* Collapse toggle - Use a styled div instead of nested Button */}
-        <div
-          role="button"
-          aria-label="Toggle sidebar collapse"
-          tabIndex={0} // Make it focusable
-          onClick={toggleCollapse}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") toggleCollapse();
-          }} // Handle keyboard activation
-          className="mt-auto p-2 rounded-md hover:bg-muted cursor-pointer flex items-center justify-center"
-        >
-          {isCollapsed
-            ? <ChevronRight className="size-4" />
-            : <ChevronLeft className="size-4" />}
-        </div>
-      </SidebarRail>
-
-      {/* Draggable Handle - only shown when not collapsed */}
       {!isCollapsed && (
         <div
           onMouseDown={handleMouseDown}
           className={`absolute top-0 ${
             side === "left" ? "right-0" : "left-0"
-          } w-2 h-full cursor-col-resize group flex items-center justify-center z-50`}
+          } w-2 h-full cursor-col-resize group flex items-center justify-center z-10`}
         >
           <div className="w-px h-1/6 bg-border group-hover:bg-primary transition-colors duration-200">
           </div>
-          {/* Optional: Add visual indicator like GripVertical on hover */}
-          {/* <GripVertical className="absolute text-border group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={16} /> */}
         </div>
       )}
-    </Sidebar>
-  );
-}
 
-function Tree({ item, depth = 0 }: TreeProps) {
-  const [name, ...items] = item;
-  const subItems = items[0] || [];
-  const isActive = name === "Sales";
-  const icon = name in iconMap
-    ? iconMap[name]
-    : <Folder className="size-4 text-muted-foreground" />;
-  const paddingLeft = `${depth * 1.5}rem`;
+      <div className={`flex flex-col h-full overflow-hidden pt-16 ${isCollapsed ? 'items-center w-full' : 'p-4'}`}>
+        {!isCollapsed && (
+          <div className={`flex items-center mb-4 justify-start`}>
+            <img src="/assets/logo.svg" alt="Company Logo" className="h-10 w-auto mr-2" />
+            <span className="font-semibold text-lg">Uno</span>
+          </div>
+        )}
+        {isCollapsed && (
+          <div className={`flex items-center mb-4 justify-center pt-2`}>
+            <img src="/assets/logo.svg" alt="Company Logo" className="h-8 w-auto" />
+          </div>
+        )}
 
-  if (!subItems.length) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          isActive={isActive}
-          className="data-[active=true]:bg-muted data-[active=true]:font-medium text-sm"
-          style={{ paddingLeft: paddingLeft }}
-        >
-          {icon}
-          <span
-            className={`${isActive ? "text-foreground" : "text-muted-foreground"} whitespace-nowrap`}
-          >
-            {name}
-          </span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
-  }
+        <nav className={`flex-1 overflow-y-auto overflow-x-hidden list-none ${isCollapsed ? 'px-1' : ''}`}>
+          <SidebarGroup className={isCollapsed ? 'flex flex-col items-center' : ''}>
+            {!isCollapsed && <SidebarGroupLabel>Navigation</SidebarGroupLabel>}
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/dashboard" className={getNavLinkClass}>
+                <LayoutDashboard className="h-5 w-5" />
+                {!isCollapsed && <span>Dashboard</span>}
+              </NavLink>
+            </SidebarMenuItem>
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/files" className={getNavLinkClass}>
+                <FileText className="h-5 w-5" />
+                {!isCollapsed && <span>Files</span>}
+              </NavLink>
+            </SidebarMenuItem>
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/project" className={getNavLinkClass}>
+                <FolderKanban className="h-5 w-5" />
+                {!isCollapsed && <span>Project</span>}
+              </NavLink>
+            </SidebarMenuItem>
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/data" className={getNavLinkClass}>
+                <Database className="h-5 w-5" />
+                {!isCollapsed && <span>Data</span>}
+              </NavLink>
+            </SidebarMenuItem>
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/codebase" className={getNavLinkClass}>
+                <CodeSquare className="h-5 w-5" />
+                {!isCollapsed && <span>Codebase</span>}
+              </NavLink>
+            </SidebarMenuItem>
+          </SidebarGroup>
 
-  return (
-    <SidebarMenuItem>
-      <Collapsible
-        className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-        defaultOpen={isActive || name === "Teams"}
-      >
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            className="text-sm"
-            style={{ paddingLeft: paddingLeft }}
-          >
-            <ChevronRight className="size-4 text-muted-foreground transition-transform shrink-0" />
-            {icon}
-            <span className="text-foreground ml-2 whitespace-nowrap">{name}</span>
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {subItems.map((
-              subItem: unknown,
-              index: React.Key | null | undefined,
-            ) => (
-              <Tree key={index} item={subItem as TreeItem} depth={depth + 1} />
+          {!isCollapsed && <Separator className="my-4" />}
+
+          {/* Teams Group (Recursive) */}
+          <SidebarGroup className={isCollapsed ? 'flex flex-col items-center' : ''}>
+            {/* Conditionally render label only when not collapsed */}
+            {!isCollapsed && <SidebarGroupLabel>Teams</SidebarGroupLabel>}
+            {/* Render the recursive tree. Start mapping from teamData[0]?.children
+                because teamData[0] is the root "Teams" item itself. */}
+            {teamData[0]?.children?.map((team, index) => (
+              <TeamTreeItem
+                 key={`${team.path}-${index}`}
+                 item={team}
+                 depth={1} // Start actual teams at depth 1 for padding
+                 isCollapsed={isCollapsed}
+                 getNavLinkClass={getNavLinkClass}
+               />
             ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </Collapsible>
-    </SidebarMenuItem>
+          </SidebarGroup>
+        </nav>
+
+        {!isCollapsed && (
+          <div className="mt-auto p-4 border-t">
+            <NavLink to="/settings" className={getNavLinkClass}>
+              <Settings className="h-5 w-5" />
+              <span>Settings</span>
+            </NavLink>
+          </div>
+        )}
+        {isCollapsed && (
+          <div className="mt-auto py-2 border-t w-full flex justify-center">
+            <NavLink to="/settings" className={({isActive}) => `${getNavLinkClass({isActive})} justify-center`}>
+              <Settings className="h-5 w-5" />
+            </NavLink>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

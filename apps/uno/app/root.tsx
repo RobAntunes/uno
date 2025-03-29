@@ -12,6 +12,9 @@ import {
 import "../styles.css";
 import { AppNav } from "./app-nav";
 import { Toaster } from "sonner";
+import { SidebarProvider } from "./components/ui/sidebar";
+import { Sidebar } from "./components/ui/sidebar";
+import AppSidebar from "./components/ui/app-sidebar";
 
 export const meta: MetaFunction = () => [
   {
@@ -52,8 +55,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Links />
         </head>
         <body className="h-full bg-background text-foreground">
-          <AppNav />
-          {children}
+          <SidebarProvider>
+            <AppSidebar />
+            {children}
+          </SidebarProvider>
           <Toaster />
           <ScrollRestoration />
           <Scripts />
