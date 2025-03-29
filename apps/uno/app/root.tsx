@@ -7,7 +7,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "react-router";
+} from "react-router-dom";
 
 import "../styles.css";
 import { AppNav } from "./app-nav";
@@ -44,14 +44,14 @@ const cognitoAuthConfig = {
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider {...cognitoAuthConfig}>
-      <html lang="en">
+      <html lang="en" className="h-screen overflow-hidden">
         <head>
           <meta charSet="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <Meta />
           <Links />
         </head>
-        <body>
+        <body className="h-full bg-background text-foreground">
           <AppNav />
           {children}
           <Toaster />

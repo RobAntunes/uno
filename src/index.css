@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "tailwindcss-animate";
+
+/* You might have other base styles or custom CSS below */
+/* Body base styles for Shadcn UI theme (will be added/modified by init) */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    /* ... other color variables ... */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    /* ... other dark mode color variables ... */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+} 
