@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/boss/Desktop",
+        "/Users/boss/Documents",
+        "/Users/boss/Downloads"
+      ],
+      "description": "A server that allows the agent to access the user's filesystem."
+    }
+  }
+}

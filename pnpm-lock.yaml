@@ -25,6 +25,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^0.2.61
         version: 0.2.61(@langchain/core@0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2)))(react@19.0.0)(zod-to-json-schema@3.24.5(zod@3.24.2))
+      '@langchain/mcp-adapters':
+        specifier: ^0.3.4
+        version: 0.3.4(@langchain/core@0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2)))
       '@langchain/openai':
         specifier: ^0.5.2
         version: 0.5.2(@langchain/core@0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2)))(encoding@0.1.13)(ws@8.18.1)
@@ -368,8 +371,6 @@ importers:
         version: 1.0.7(tailwindcss@4.0.17)
 
   apps/uno-e2e: {}
-
-  libs: {}
 
 packages:
 
@@ -1071,6 +1072,9 @@ packages:
   '@develar/schema-utils@2.6.5':
     resolution: {integrity: sha512-0cp4PsWQ/9avqTVMCtZ+GirikIA36ikvjtHweU4/j8yLtgObI0+JUPhYFScgwlteveGB1rt3Cm8UhN04XayDig==}
     engines: {node: '>= 8.9.0'}
+
+  '@dmitryrechkin/json-schema-to-zod@1.0.1':
+    resolution: {integrity: sha512-cG9gC4NMu/7JZqmRZy6uIb+l+kxek2GFQ0/qrhw7xeFK2l5B9yF9FVuujoqFPLRGDHNFYqtBWht7hY4KB0ngrA==}
 
   '@electron/asar@3.3.1':
     resolution: {integrity: sha512-WtpC/+34p0skWZiarRjLAyqaAX78DofhDxnREy/V5XHfu1XEXbFCSSMcDQ6hNCPJFaPy8/NnUgYuf9uiCkvKPg==}
@@ -1988,6 +1992,12 @@ packages:
     peerDependenciesMeta:
       zod-to-json-schema:
         optional: true
+
+  '@langchain/mcp-adapters@0.3.4':
+    resolution: {integrity: sha512-NzRth5iD7lYPW+8DilnccuBNIvPxhJlNJRop1mohlGeAtWC0nKw+2gBaCgddeieUnfqOAdJJv2gV9RGzp1Im7g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@langchain/core': ^0.3.40
 
   '@langchain/openai@0.4.9':
     resolution: {integrity: sha512-NAsaionRHNdqaMjVLPkFCyjUDze+OqRHghA1Cn4fPoAafz+FXcl9c7LlEl9Xo0FH6/8yiCl7Rw2t780C/SBVxQ==}
@@ -5427,6 +5437,9 @@ packages:
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
+
+  extended-eventsource@1.7.0:
+    resolution: {integrity: sha512-s8rtvZuYcKBpzytHb5g95cHbZ1J99WeMnV18oKc5wKoxkHzlzpPc/bNAm7Da2Db0BDw0CAu1z3LpH+7UsyzIpw==}
 
   extract-zip@2.0.1:
     resolution: {integrity: sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==}
@@ -10633,6 +10646,10 @@ snapshots:
       ajv: 6.12.6
       ajv-keywords: 3.5.2(ajv@6.12.6)
 
+  '@dmitryrechkin/json-schema-to-zod@1.0.1':
+    dependencies:
+      zod: 3.24.2
+
   '@electron/asar@3.3.1':
     dependencies:
       commander: 5.1.0
@@ -11249,6 +11266,17 @@ snapshots:
       zod-to-json-schema: 3.24.5(zod@3.24.2)
     transitivePeerDependencies:
       - react
+
+  '@langchain/mcp-adapters@0.3.4(@langchain/core@0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2)))':
+    dependencies:
+      '@dmitryrechkin/json-schema-to-zod': 1.0.1
+      '@langchain/core': 0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2))
+      '@modelcontextprotocol/sdk': 1.8.0(patch_hash=4077078600197ebd70df6f4073c39ec1580232a7ea79e9e34c35d5841e59acfc)
+      debug: 4.4.0
+    optionalDependencies:
+      extended-eventsource: 1.7.0
+    transitivePeerDependencies:
+      - supports-color
 
   '@langchain/openai@0.4.9(@langchain/core@0.3.43(openai@4.90.0(encoding@0.1.13)(ws@8.18.1)(zod@3.24.2)))(encoding@0.1.13)(ws@8.18.1)':
     dependencies:
@@ -15704,6 +15732,9 @@ snapshots:
       sort-keys-length: 1.0.1
 
   extend@3.0.2: {}
+
+  extended-eventsource@1.7.0:
+    optional: true
 
   extract-zip@2.0.1:
     dependencies:
