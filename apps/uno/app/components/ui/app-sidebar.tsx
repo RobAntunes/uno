@@ -20,6 +20,7 @@ import {
   Users,
   User,
   Wrench,
+  Server,
 } from "lucide-react";
 import { NavLink } from 'react-router-dom';
 
@@ -364,6 +365,12 @@ export function AppSidebar({
               <NavLink to="/codebase" className={getNavLinkClass}>
                 <CodeSquare className="h-5 w-5" />
                 {!isCollapsed && <span>Codebase</span>}
+              </NavLink>
+            </SidebarMenuItem>
+            <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
+              <NavLink to="/servers" className={getNavLinkClass}>
+                <Server className="h-5 w-5" />
+                {!isCollapsed && <span>Servers</span>}
               </NavLink>
             </SidebarMenuItem>
           </SidebarGroup>

@@ -69,11 +69,14 @@ export default function App() {
 
     try {
       // Call the main process agent via the exposed IPC method
+      console.log(`[App] Requesting agent execution via IPC: ${userInput}`);
       const agentResponseContent: string = await window.electron.ipcInvoke(
-        "run-agent",
+        "run-agent", // Use the IPC channel name again
         userInput
       );
-      console.log("[App] Received agent response:", agentResponseContent);
+      console.log("[App] Received agent response via IPC:", agentResponseContent);
+
+      // agentResponseContent is expected to be a string here
 
       const agentMessage: Message = {
         role: "assistant",

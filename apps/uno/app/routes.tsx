@@ -1,22 +1,8 @@
 import type { RouteConfig } from '@react-router/dev/routes'; // Use the type expected by the plugin if available
 
 // Import your route components
-import App from './app'; // Main app layout
-import AuthPage from './routes/auth/index';
-import DashboardPage from './routes/dashboard';
-import FilesPage from './routes/files';
-import ProjectPage from './routes/project';
-import DataPage from './routes/data';
-import CodebasePage from './routes/codebase';
-import SettingsPage from './routes/settings';
 
 // Import Agent specific layouts and pages
-import AgentSectionLayout from './layouts/agent-section-layout';
-import AgentIndexPage from './routes/agent-index';
-import AgentTasksPage from './routes/agent/tasks';
-import AgentToolsPage from './routes/agent/tools';
-import AgentFlowsPage from './routes/agent/flows';
-import AgentMemoryPage from './routes/agent/memory';
 
 // Define breadcrumb data type for route handles (optional but good practice)
 // Re-enable this later if we find a way to add handles
@@ -56,6 +42,10 @@ const routes: RouteConfig = [ // Use RouteConfig type if possible, otherwise adj
       {
         path: "settings",
         file: './routes/settings.tsx',
+      },
+      {
+        path: "servers", // Add the path for the servers page
+        file: './routes/servers.tsx', // Point to the new component file
       },
 
       // --- Teams/Agent Routes (Nested) ---
