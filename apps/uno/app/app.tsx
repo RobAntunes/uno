@@ -1,5 +1,5 @@
 import * as React from "react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Separator } from "@radix-ui/react-separator";
 import {
   Breadcrumb,
@@ -13,8 +13,15 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"; /
 import { ChatHeader } from "./components/chat-header";
 // Remove SidebarInset import
 import { Link, Outlet, UIMatch, useMatches } from "react-router-dom";
-// Import ChatSection, ChatMessages, ChatInput
-import { ChatInput, ChatMessages, ChatSection } from "@llamaindex/chat-ui";
+// Import ChatSection, ChatMessages, ChatInput and Message types
+import {
+  ChatInput,
+  ChatMessages,
+  ChatSection,
+  Message,
+  // Assuming these types exist or adapting based on actual API
+  // If not, define simple types like { role: string, content: string }
+} from "@llamaindex/chat-ui";
 // Use React.lazy for client-side only import
 const TerminalView = lazy(() => import("./components/terminal-view"));
 // Remove FileExplorer and related imports (useState, Button, icons)
@@ -44,16 +51,61 @@ export default function App() {
   // Remove file explorer state
   // const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
 
-  // Placeholder chat handler to satisfy ChatSection prop types
-  const mockChatHandler = {
-    input: "",
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    setInput: () => {},
-    isLoading: false,
-    messages: [],
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    append: async () => null, // Return null to match type
+  // --- Real Chat State ---
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Function to handle sending message and receiving response
+  const append = async (message: Message | null) => {
+    if (!message || message.role !== "user") return null; // Only handle user messages
+
+    const userInput = message.content;
+    if (!userInput) return null;
+
+    console.log("[App] Sending user message:", userInput);
+    setMessages((prevMessages) => [...prevMessages, message]);
+    setIsLoading(true);
+
+    try {
+      // Call the main process agent via the exposed IPC method
+      const agentResponseContent: string = await window.electron.ipcInvoke(
+        "run-agent",
+        userInput
+      );
+      console.log("[App] Received agent response:", agentResponseContent);
+
+      const agentMessage: Message = {
+        role: "assistant",
+        content: agentResponseContent,
+        // Add id or other fields if required by ChatMessages
+      };
+
+      setMessages((prevMessages) => [...prevMessages, agentMessage]);
+    } catch (error) {
+      console.error("[App] Error invoking agent:", error);
+      // Add an error message to the chat
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `Error: ${(error as Error).message || "Unknown error"}`,
+      };
+      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+    return null; // append function in chat-ui might expect null
   };
+
+  // Real chat handler conforming to chat-ui expectations
+  const chatHandler = {
+    messages,
+    input,
+    setInput, // Pass the state setter
+    append,
+    isLoading,
+    // Add other methods/props if the handler interface requires them
+  };
+  // --- End Real Chat State ---
 
   const crumbs = matches
     .filter(hasBreadcrumb)
@@ -123,7 +175,7 @@ export default function App() {
               {/* Main container for chat */}
               <ChatHeader /> {/* Add the Chat Header */}
               <ChatSection
-                handler={mockChatHandler}
+                handler={chatHandler}
                 className="flex flex-col flex-grow overflow-hidden"
               >
                 {/* ChatSection manages context, ensure it allows flex styling */}
@@ -169,7 +221,7 @@ export default function App() {
                   >
                     {/* Keep input vertically centered if needed */}
                     <ChatSection
-                      handler={mockChatHandler}
+                      handler={chatHandler}
                       className="max-h-[72vh] w-full"
                     >
                       <ChatInput className="rounded-xl w-full">

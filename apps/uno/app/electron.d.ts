@@ -34,6 +34,9 @@ declare global {
       // Add other functions exposed via contextBridge here if any
       getAppVersion: () => Promise<string>; // Assuming this returns a promise
       platform: string;
+
+      // Added based on main.preload.ts update
+      ipcInvoke: (channel: string, ...args: any[]) => Promise<any>;
     };
   }
 }

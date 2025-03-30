@@ -23,7 +23,7 @@ import { AgentProvider } from "./context/agent-context";
 
 export const meta: MetaFunction = () => [
   {
-    title: "New Nx React Router App",
+    title: "Uno",
   },
 ];
 

@@ -70,7 +70,7 @@
   ],
   "targetDefaults": {
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "^build"]
     },
     "e2e-ci--**/*": {
       "dependsOn": ["^build"]
@@ -106,5 +106,10 @@
       }
     }
   },
-  "defaultProject": "uno-electron"
+  "defaultProject": "uno-electron",
+  "release": {
+    "version": {
+      "preVersionCommand": "pnpm dlx nx run-many -t build"
+    }
+  }
 }
