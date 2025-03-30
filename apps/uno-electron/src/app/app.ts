@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, app, WebContents } from 'electron';
+import { BrowserWindow, screen } from 'electron';
 import { rendererAppName, rendererAppPort } from './constants';
 import { environment } from '../environments/environment';
 import { join } from 'path';

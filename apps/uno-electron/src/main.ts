@@ -1,10 +1,55 @@
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from the root directory's .env file first
+// Adjust the path relative to the compiled main.js in dist/
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') }); 
+
+// Load environment variables from apps/uno/.env, potentially overriding root
+// Adjust the path relative to the compiled main.js in dist/
+dotenv.config({ path: path.resolve(__dirname, '../../uno/.env'), override: true });
+
+// Add a check to see if the key is loaded
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn("WARN: ANTHROPIC_API_KEY not found after loading .env files. Check paths in main.ts and ensure the key exists.");
+} else {
+  console.log("INFO: ANTHROPIC_API_KEY loaded successfully.");
+}
+
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import SquirrelEvents from './app/events/squirrel.events';
 import ElectronEvents from './app/events/electron.events';
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
 import App from './app/app';
 import * as fs from 'fs/promises';
-import * as path from 'path';
+import { WebSocketServer, WebSocket } from 'ws'; // Import WebSocket server
+import * as pty from 'node-pty'; // Import node-pty
+import * as os from 'os'; // Import os module
 // import * as chokidar from 'chokidar'; // Removed
+
+// --- Reference to the active terminal process ---
+// For simplicity, we assume only one terminal is active at a time.
+// This could be extended to a map if multiple sessions are needed.
+let activePtyProcess: pty.IPty | null = null;
+
+// --- Function for the tool to call ---
+export async function executeCommandInMainPty(command: string): Promise<string> {
+  console.log(`[Main Process] Attempting to execute command via tool: ${command}`);
+  if (!activePtyProcess) {
+    console.error('[Main Process] Cannot execute command: No active pty process.');
+    throw new Error("No active terminal session found.");
+  }
+  try {
+    // Add carriage return to simulate pressing Enter
+    activePtyProcess.write(command + '\r');
+    console.log(`[Main Process] Command sent to active pty process ${activePtyProcess.pid}`);
+    // Return confirmation. Output streams via WebSocket.
+    return `Command sent to terminal.`;
+  } catch (error: any) {
+    console.error(`[Main Process] Error writing to pty process ${activePtyProcess.pid}:`, error);
+    throw new Error(`Failed to send command to terminal: ${error.message}`);
+  }
+}
 
 // Define types matching the renderer (can be shared in a common types file later)
 interface FSEntry {
@@ -15,6 +60,11 @@ interface FSEntry {
 interface DirectoryListing {
     path: string;
     entries: FSEntry[];
+}
+
+// Simple message state for the agent graph
+export interface MessagesState {
+  messages: Array<HumanMessage | AIMessage>;
 }
 
 // --- IPC Handler for Reading Directory ---
@@ -69,6 +119,26 @@ ipcMain.handle('read-directory', async (event: IpcMainInvokeEvent, requestedPath
 });
 // --- End IPC Handler ---
 
+// --- IPC Handler for Agent Interaction ---
+// Import the agent interaction function
+import { runAgentInteraction } from './app/agent';
+
+ipcMain.handle('run-agent', async (event: IpcMainInvokeEvent, input: string): Promise<string> => {
+  console.log(`[Main Process] Received run-agent request with input: ${input}`);
+  try {
+    // We might want to pass a session/thread ID from the frontend later
+    const aiResponse = await runAgentInteraction(input);
+    // Return the content of the AI's final message
+    // We might want to return the full message structure later
+    return typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content);
+  } catch (error: any) {
+    console.error('[Main Process] Error running agent interaction:', error);
+    // Re-throw or return a formatted error message to the renderer
+    throw new Error(`Agent execution failed: ${error.message}`);
+  }
+});
+// --- End Agent IPC Handler ---
+
 export default class Main {
   static initialize() {
     if (SquirrelEvents.handleEvents()) {
@@ -84,11 +154,125 @@ export default class Main {
   static bootstrapAppEvents() {
     ElectronEvents.bootstrapElectronEvents();
 
+    // Initialize WebSocket Terminal Server
+    this.bootstrapTerminalServer();
+
     // initialize auto updater service
     if (!App.isDevelopmentMode()) {
       // UpdateEvents.initAutoUpdateService();
     }
   }
+
+  // --- New Static Method for Terminal Server ---
+  static bootstrapTerminalServer() {
+    const port = 8081;
+    const wss = new WebSocketServer({ port });
+    console.log(`[Main Process] Terminal WebSocket Server listening on port ${port}`);
+
+    wss.on('connection', (ws) => {
+      console.log('[Main Process] Terminal client connected via WebSocket');
+
+      // Spawn pty process
+      const shellPath = os.platform() === 'win32' ? 'powershell.exe' : (process.env.SHELL || 'bash');
+      const ptyProcess = pty.spawn(shellPath, [], {
+        name: 'xterm-color', // Corresponds to xterm.js terminal type
+        cols: 80, // Default size, will be updated on resize event
+        rows: 30,
+        cwd: process.env.HOME, // Start in user's home directory
+        env: process.env, // Use current environment variables
+      });
+
+      console.log(`[Main Process] Spawned pty process with PID: ${ptyProcess.pid}`);
+
+      // --- Store reference to the active process ---
+      if (activePtyProcess) {
+         // Kill previous pty if a new connection is made (simple single-session handling)
+         console.warn(`[Main Process] Killing previous pty process ${activePtyProcess.pid} due to new connection.`);
+         try {
+            activePtyProcess.kill();
+         } catch (e) { /* Ignore error if already dead */ }
+      }
+      activePtyProcess = ptyProcess;
+      // --- End store reference ---
+
+      // Pipe pty output to WebSocket
+      ptyProcess.onData((data) => {
+        try {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(data);
+          }
+        } catch (err) {
+          console.error('[Main Process] Error sending data over WebSocket:', err);
+        }
+      });
+
+      // Handle messages from WebSocket (client -> pty)
+      ws.on('message', (rawMessage) => {
+        try {
+          const message = JSON.parse(rawMessage.toString());
+
+          if (message.type === 'input') {
+            ptyProcess.write(message.data);
+          } else if (message.type === 'resize') {
+            if (message.cols && message.rows) {
+              ptyProcess.resize(message.cols, message.rows);
+              console.log(`[Main Process] Resized pty ${ptyProcess.pid} to ${message.cols}x${message.rows}`);
+            }
+          }
+        } catch (error) {
+          console.error('[Main Process] Failed to parse WebSocket message or handle pty command:', error);
+        }
+      });
+
+      // Handle WebSocket close
+      ws.on('close', () => {
+        console.log(`[Main Process] Terminal client WebSocket closed. Killing pty process ${ptyProcess.pid}.`);
+        ptyProcess.kill(); // This triggers the onExit handler
+        // --- Clear reference if this was the active process ---
+        if (activePtyProcess && activePtyProcess.pid === ptyProcess.pid) {
+          activePtyProcess = null;
+           console.log('[Main Process] Cleared active pty process reference.');
+        }
+        // --- End clear reference ---
+      });
+
+      // Handle WebSocket error
+      ws.on('error', (error) => {
+        console.error('[Main Process] WebSocket error:', error);
+        // Attempt to kill pty if WebSocket errors out
+        try {
+          ptyProcess.kill();
+        } catch (killError) {
+          console.error(`[Main Process] Error killing pty ${ptyProcess.pid} after WebSocket error:`, killError);
+        }
+      });
+
+      // Handle pty exit
+      ptyProcess.onExit(({ exitCode, signal }) => {
+        console.log(`[Main Process] Pty process ${ptyProcess.pid} exited with code ${exitCode}, signal ${signal}`);
+        // --- Clear reference if this was the active process ---
+         if (activePtyProcess && activePtyProcess.pid === ptyProcess.pid) {
+          activePtyProcess = null;
+           console.log('[Main Process] Cleared active pty process reference on exit.');
+        }
+        // --- End clear reference ---
+        // Close WebSocket if pty process exits unexpectedly
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        }
+      });
+    });
+
+    wss.on('error', (error) => {
+      console.error('[Main Process] WebSocket Server Error:', error);
+      // Handle specific errors like EADDRINUSE
+      if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+        console.error(`[Main Process] Port ${port} is already in use. Terminal server cannot start.`);
+        // Optionally notify the user through the UI
+      }
+    });
+  }
+  // --- End Terminal Server Method ---
 }
 
 // handle setup events as quickly as possible
