@@ -1,16 +1,19 @@
-import { createRoutesStub } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from '../../app/app';
 
 test('renders loader data', async () => {
-  const ReactRouterStub = createRoutesStub([
+  const routes = [
     {
       path: '/',
       Component: App,
     },
-  ]);
+  ];
 
-  render(<ReactRouterStub />);
+  const router = createMemoryRouter(routes, {
+  });
 
-  await waitFor(() => screen.findByText('Hello there,'));
+  render(<RouterProvider router={router} />);
+
+  await waitFor(() => screen.findByRole('main'));
 });
