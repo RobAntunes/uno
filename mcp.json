@@ -2,14 +2,33 @@
   "servers": {
     "filesystem": {
       "command": "npx",
+      "description": "A server that allows the agent to access the user's filesystem.",
+      "active": true,
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
         "/Users/boss/Desktop",
         "/Users/boss/Documents",
         "/Users/boss/Downloads"
-      ],
-      "description": "A server that allows the agent to access the user's filesystem."
+      ]
+    },
+    "sequential-thinking": {
+      "active": true,
+      "command": "npx",
+      "description": "A server that allows the agent to think deeply about the user's request.",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "playwright": {
+      "active": true,
+      "command": "npx",
+      "description": "A server that allows the agent to interact with the browser.",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
     }
   }
 }

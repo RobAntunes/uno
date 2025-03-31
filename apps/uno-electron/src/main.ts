@@ -27,6 +27,70 @@ import * as pty from 'node-pty'; // Import node-pty
 import * as os from 'os'; // Import os module
 // import * as chokidar from 'chokidar'; // Removed
 
+// --- Define the structure for MCP Server config (matching mcp.json)
+// Note: This is simplified; add other fields like transport, url etc. if needed by the handler
+interface McpServerConfig {
+  description?: string;
+  active: boolean;
+  command?: string;
+  args?: string[];
+  transport?: 'stdio' | 'sse';
+  url?: string;
+  // Add other potential fields from your mcp.json schema
+}
+
+interface McpConfig {
+  servers: Record<string, McpServerConfig>;
+}
+
+// --- Path to mcp.json (relative to project root, assuming CWD is project root)
+const MCP_CONFIG_PATH = path.resolve(process.cwd(), 'mcp.json');
+
+// --- IPC Handlers for MCP Config ---
+
+// Handler to read and return the MCP server configuration
+ipcMain.handle('get-mcp-servers', async (): Promise<McpConfig> => {
+  console.log(`[Main Process] Reading MCP config from: ${MCP_CONFIG_PATH}`);
+  try {
+    const fileContent = await fs.readFile(MCP_CONFIG_PATH, 'utf-8');
+    const config = JSON.parse(fileContent) as McpConfig;
+    // Basic validation
+    if (!config || typeof config.servers !== 'object') {
+      throw new Error('Invalid MCP configuration format: missing or invalid \'servers\' property.');
+    }
+    console.log("[Main Process] Successfully read and parsed MCP config.");
+    return config;
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      console.warn(`[Main Process] MCP config file not found at ${MCP_CONFIG_PATH}. Returning default empty structure.`);
+      // Return a default empty structure if the file doesn't exist
+      return { servers: {} };
+    } else {
+      console.error('[Main Process] Error reading or parsing MCP config:', error);
+      throw new Error(`Failed to read/parse MCP configuration: ${error.message}`);
+    }
+  }
+});
+
+// Handler to save the updated MCP server configuration
+ipcMain.handle('save-mcp-servers', async (event: IpcMainInvokeEvent, updatedConfig: McpConfig): Promise<void> => {
+  console.log(`[Main Process] Saving updated MCP config to: ${MCP_CONFIG_PATH}`);
+  try {
+    // Basic validation of incoming data
+    if (!updatedConfig || typeof updatedConfig.servers !== 'object') {
+      throw new Error('Invalid configuration format provided for saving.');
+    }
+    const jsonString = JSON.stringify(updatedConfig, null, 2); // Pretty print JSON
+    await fs.writeFile(MCP_CONFIG_PATH, jsonString, 'utf-8');
+    console.log("[Main Process] Successfully saved MCP config.");
+  } catch (error: any) {
+    console.error('[Main Process] Error saving MCP config:', error);
+    throw new Error(`Failed to save MCP configuration: ${error.message}`);
+  }
+});
+
+// --- End MCP Config IPC Handlers ---
+
 // --- Reference to the active terminal process ---
 // For simplicity, we assume only one terminal is active at a time.
 // This could be extended to a map if multiple sessions are needed.
@@ -119,10 +183,30 @@ ipcMain.handle('read-directory', async (event: IpcMainInvokeEvent, requestedPath
 });
 // --- End IPC Handler ---
 
+// --- IPC Handler for Executing Terminal Commands ---
+// Remove this handler as agent runs in main process now
+/*
+ipcMain.handle('execute-terminal-command', async (event: IpcMainInvokeEvent, command: string): Promise<{ success: boolean, output?: string, error?: string }> => {
+  console.log(`[Main Process] Received execute-terminal-command request: ${command}`);
+  try {
+      // Use the existing function that interacts with the active pty
+      const result = await executeCommandInMainPty(command);
+      // Adapt the return value structure slightly for invoke/handle
+      return { success: true, output: result };
+  } catch (error: any) {
+      console.error(`[Main Process] Error executing command "${command}":`, error);
+      return { success: false, error: error.message };
+  }
+});
+*/
+// --- End Terminal Command Handler ---
+
 // --- IPC Handler for Agent Interaction ---
+// Re-enable this handler
 // Import the agent interaction function
 import { runAgentInteraction } from './app/agent';
 
+// Re-enable this handler by removing the block comment
 ipcMain.handle('run-agent', async (event: IpcMainInvokeEvent, input: string): Promise<string> => {
   console.log(`[Main Process] Received run-agent request with input: ${input}`);
   try {
@@ -130,11 +214,14 @@ ipcMain.handle('run-agent', async (event: IpcMainInvokeEvent, input: string): Pr
     const aiResponse = await runAgentInteraction(input);
     // Return the content of the AI's final message
     // We might want to return the full message structure later
-    return typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content);
+    // Ensure this returns a string as expected by app.tsx
+    const responseContent = typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content);
+    return responseContent;
   } catch (error: any) {
     console.error('[Main Process] Error running agent interaction:', error);
     // Re-throw or return a formatted error message to the renderer
-    throw new Error(`Agent execution failed: ${error.message}`);
+    // Return error message as string to the UI
+    return `Error: Agent execution failed: ${error.message}`;
   }
 });
 // --- End Agent IPC Handler ---

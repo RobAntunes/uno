@@ -1,5 +1,15 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
+// Define the type for the MCP config to be used in preload/renderer
+interface McpServerConfig {
+  description?: string;
+  active: boolean;
+  // Add other fields if the renderer needs them directly, otherwise keep minimal
+}
+interface McpConfig {
+  servers: Record<string, McpServerConfig>;
+}
+
 contextBridge.exposeInMainWorld('electron', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   platform: process.platform,
@@ -8,8 +18,21 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('file-changed', callback),
   removeFileChangedListener: (callback: (event: IpcRendererEvent, data: { type: string; path: string }) => void) =>
     ipcRenderer.removeListener('file-changed', callback),
+
+  // --- Add MCP Handlers ---
+  getMcpServers: (): Promise<McpConfig> => ipcRenderer.invoke('get-mcp-servers'),
+  saveMcpServers: (updatedConfig: McpConfig): Promise<void> => ipcRenderer.invoke('save-mcp-servers', updatedConfig),
+  // --- End MCP Handlers ---
+
   ipcInvoke: (channel: string, ...args: any[]) => {
-    const allowedChannels = ['run-agent', 'read-directory', 'get-app-version'];
+    // Update allowed channels list - RE-ADD 'run-agent'
+    const allowedChannels = [
+      'run-agent', // <-- RE-ADDED
+      'read-directory',
+      'get-app-version',
+      'get-mcp-servers', // Allow getting MCP config
+      'save-mcp-servers' // Allow saving MCP config
+    ];
     if (allowedChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);
     }
