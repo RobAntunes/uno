@@ -16,6 +16,7 @@
     "@langchain/community": "^0.3.38",
     "@langchain/core": "^0.3.43",
     "@langchain/langgraph": "^0.2.61",
+    "@langchain/mcp-adapters": "^0.3.4",
     "@langchain/openai": "^0.5.2",
     "@llamaindex/chat-ui": "^0.3.2",
     "@modelcontextprotocol/sdk": "1.8.0",

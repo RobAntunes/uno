@@ -1,30 +1,35 @@
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import * as dotenv from "dotenv";
+import * as path from "path";
 
 // Load environment variables from the root directory's .env file first
 // Adjust the path relative to the compiled main.js in dist/
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') }); 
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 // Load environment variables from apps/uno/.env, potentially overriding root
 // Adjust the path relative to the compiled main.js in dist/
-dotenv.config({ path: path.resolve(__dirname, '../../uno/.env'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, "../../uno/.env"),
+  override: true,
+});
 
 // Add a check to see if the key is loaded
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn("WARN: ANTHROPIC_API_KEY not found after loading .env files. Check paths in main.ts and ensure the key exists.");
+  console.warn(
+    "WARN: ANTHROPIC_API_KEY not found after loading .env files. Check paths in main.ts and ensure the key exists.",
+  );
 } else {
   console.log("INFO: ANTHROPIC_API_KEY loaded successfully.");
 }
 
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import SquirrelEvents from './app/events/squirrel.events';
-import ElectronEvents from './app/events/electron.events';
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
-import App from './app/app';
-import * as fs from 'fs/promises';
-import { WebSocketServer, WebSocket } from 'ws'; // Import WebSocket server
-import * as pty from 'node-pty'; // Import node-pty
-import * as os from 'os'; // Import os module
+import SquirrelEvents from "./app/events/squirrel.events";
+import ElectronEvents from "./app/events/electron.events";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
+import App from "./app/app";
+import * as fs from "fs/promises";
+import { WebSocket, WebSocketServer } from "ws"; // Import WebSocket server
+import * as pty from "node-pty"; // Import node-pty
+import * as os from "os"; // Import os module
 // import * as chokidar from 'chokidar'; // Removed
 
 // --- Define the structure for MCP Server config (matching mcp.json)
@@ -34,7 +39,7 @@ interface McpServerConfig {
   active: boolean;
   command?: string;
   args?: string[];
-  transport?: 'stdio' | 'sse';
+  transport?: "stdio" | "sse";
   url?: string;
   // Add other potential fields from your mcp.json schema
 }
@@ -44,52 +49,97 @@ interface McpConfig {
 }
 
 // --- Path to mcp.json (relative to project root, assuming CWD is project root)
-const MCP_CONFIG_PATH = path.resolve(process.cwd(), 'mcp.json');
+const MCP_CONFIG_PATH = path.resolve(process.cwd(), "mcp.json");
 
 // --- IPC Handlers for MCP Config ---
 
 // Handler to read and return the MCP server configuration
-ipcMain.handle('get-mcp-servers', async (): Promise<McpConfig> => {
+ipcMain.handle("get-mcp-servers", async (): Promise<McpConfig> => {
   console.log(`[Main Process] Reading MCP config from: ${MCP_CONFIG_PATH}`);
   try {
-    const fileContent = await fs.readFile(MCP_CONFIG_PATH, 'utf-8');
+    const fileContent = await fs.readFile(MCP_CONFIG_PATH, "utf-8");
     const config = JSON.parse(fileContent) as McpConfig;
     // Basic validation
-    if (!config || typeof config.servers !== 'object') {
-      throw new Error('Invalid MCP configuration format: missing or invalid \'servers\' property.');
+    if (!config || typeof config.servers !== "object") {
+      throw new Error(
+        "Invalid MCP configuration format: missing or invalid 'servers' property.",
+      );
     }
     console.log("[Main Process] Successfully read and parsed MCP config.");
     return config;
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      console.warn(`[Main Process] MCP config file not found at ${MCP_CONFIG_PATH}. Returning default empty structure.`);
+    if (error.code === "ENOENT") {
+      console.warn(
+        `[Main Process] MCP config file not found at ${MCP_CONFIG_PATH}. Returning default empty structure.`,
+      );
       // Return a default empty structure if the file doesn't exist
       return { servers: {} };
     } else {
-      console.error('[Main Process] Error reading or parsing MCP config:', error);
-      throw new Error(`Failed to read/parse MCP configuration: ${error.message}`);
+      console.error(
+        "[Main Process] Error reading or parsing MCP config:",
+        error,
+      );
+      throw new Error(
+        `Failed to read/parse MCP configuration: ${error.message}`,
+      );
     }
   }
 });
 
 // Handler to save the updated MCP server configuration
-ipcMain.handle('save-mcp-servers', async (event: IpcMainInvokeEvent, updatedConfig: McpConfig): Promise<void> => {
-  console.log(`[Main Process] Saving updated MCP config to: ${MCP_CONFIG_PATH}`);
-  try {
-    // Basic validation of incoming data
-    if (!updatedConfig || typeof updatedConfig.servers !== 'object') {
-      throw new Error('Invalid configuration format provided for saving.');
+ipcMain.handle(
+  "save-mcp-servers",
+  async (
+    event: IpcMainInvokeEvent,
+    updatedConfig: McpConfig,
+  ): Promise<void> => {
+    console.log(
+      `[Main Process] Saving updated MCP config to: ${MCP_CONFIG_PATH}`,
+    );
+    try {
+      // Basic validation of incoming data
+      if (!updatedConfig || typeof updatedConfig.servers !== "object") {
+        throw new Error("Invalid configuration format provided for saving.");
+      }
+      const jsonString = JSON.stringify(updatedConfig, null, 2); // Pretty print JSON
+      await fs.writeFile(MCP_CONFIG_PATH, jsonString, "utf-8");
+      console.log("[Main Process] Successfully saved MCP config.");
+    } catch (error: any) {
+      console.error("[Main Process] Error saving MCP config:", error);
+      throw new Error(`Failed to save MCP configuration: ${error.message}`);
     }
-    const jsonString = JSON.stringify(updatedConfig, null, 2); // Pretty print JSON
-    await fs.writeFile(MCP_CONFIG_PATH, jsonString, 'utf-8');
-    console.log("[Main Process] Successfully saved MCP config.");
+  },
+);
+
+// --- End MCP Config IPC Handlers ---
+
+// Handler for reading a file
+ipcMain.handle("read-file", async (event, filePath) => {
+  try {
+    // Resolve path relative to the project root (assuming Electron runs from project root)
+    const safePath = path.resolve(process.cwd(), filePath);
+    const content = await fs.readFile(safePath, "utf-8");
+    return content;
   } catch (error: any) {
-    console.error('[Main Process] Error saving MCP config:', error);
-    throw new Error(`Failed to save MCP configuration: ${error.message}`);
+    console.error(`[IPC:read-file] Error reading ${filePath}:`, error.message);
+    return null; // Indicate failure
   }
 });
 
-// --- End MCP Config IPC Handlers ---
+// Handler for resolving a path
+ipcMain.handle("resolve-path", async (event, relativePath) => {
+  try {
+    // Resolve relative to the project root
+    const absolutePath = path.resolve(process.cwd(), relativePath);
+    return absolutePath;
+  } catch (error: any) {
+    console.error(
+      `[IPC:resolve-path] Error resolving ${relativePath}:`,
+      error.message,
+    );
+    throw error;
+  }
+});
 
 // --- Reference to the active terminal process ---
 // For simplicity, we assume only one terminal is active at a time.
@@ -97,20 +147,31 @@ ipcMain.handle('save-mcp-servers', async (event: IpcMainInvokeEvent, updatedConf
 let activePtyProcess: pty.IPty | null = null;
 
 // --- Function for the tool to call ---
-export async function executeCommandInMainPty(command: string): Promise<string> {
-  console.log(`[Main Process] Attempting to execute command via tool: ${command}`);
+export async function executeCommandInMainPty(
+  command: string,
+): Promise<string> {
+  console.log(
+    `[Main Process] Attempting to execute command via tool: ${command}`,
+  );
   if (!activePtyProcess) {
-    console.error('[Main Process] Cannot execute command: No active pty process.');
+    console.error(
+      "[Main Process] Cannot execute command: No active pty process.",
+    );
     throw new Error("No active terminal session found.");
   }
   try {
     // Add carriage return to simulate pressing Enter
-    activePtyProcess.write(command + '\r');
-    console.log(`[Main Process] Command sent to active pty process ${activePtyProcess.pid}`);
+    activePtyProcess.write(command + "\r");
+    console.log(
+      `[Main Process] Command sent to active pty process ${activePtyProcess.pid}`,
+    );
     // Return confirmation. Output streams via WebSocket.
     return `Command sent to terminal.`;
   } catch (error: any) {
-    console.error(`[Main Process] Error writing to pty process ${activePtyProcess.pid}:`, error);
+    console.error(
+      `[Main Process] Error writing to pty process ${activePtyProcess.pid}:`,
+      error,
+    );
     throw new Error(`Failed to send command to terminal: ${error.message}`);
   }
 }
@@ -122,8 +183,8 @@ interface FSEntry {
   isDirectory: boolean;
 }
 interface DirectoryListing {
-    path: string;
-    entries: FSEntry[];
+  path: string;
+  entries: FSEntry[];
 }
 
 // Simple message state for the agent graph
@@ -133,54 +194,62 @@ export interface MessagesState {
 
 // --- IPC Handler for Reading Directory ---
 // Using handle/invoke for async request/response
-ipcMain.handle('read-directory', async (event: IpcMainInvokeEvent, requestedPath: string): Promise<DirectoryListing> => {
-  console.log(`[Main Process] Received read-directory request for: ${requestedPath}`);
+ipcMain.handle(
+  "read-directory",
+  async (
+    event: IpcMainInvokeEvent,
+    requestedPath: string,
+  ): Promise<DirectoryListing> => {
+    console.log(
+      `[Main Process] Received read-directory request for: ${requestedPath}`,
+    );
 
-  // Basic security check: Resolve the path to ensure it's absolute and normalized.
-  // Consider adding more robust path validation/sandboxing later based on your app's needs.
-  // Resolve relative to app's CWD. Might need adjustment if you want it relative to user data, etc.
-  const absolutePath = path.resolve(requestedPath || '.');
-  console.log(`[Main Process] Resolved path to: ${absolutePath}`);
+    // Basic security check: Resolve the path to ensure it's absolute and normalized.
+    // Consider adding more robust path validation/sandboxing later based on your app's needs.
+    // Resolve relative to app's CWD. Might need adjustment if you want it relative to user data, etc.
+    const absolutePath = path.resolve(requestedPath || ".");
+    console.log(`[Main Process] Resolved path to: ${absolutePath}`);
 
-  try {
-    const entries: FSEntry[] = [];
-    const ignoredNames = new Set(['.git', 'node_modules', 'dist',
+    try {
+      const entries: FSEntry[] = [];
+      const ignoredNames = new Set([".git", "node_modules", "dist"]); // Add folders to ignore here
 
+      const dir = await fs.opendir(absolutePath);
+      for await (const dirent of dir) {
+        // Potentially filter out hidden files, specific types, etc.
+        if (dirent.name.startsWith(".") && dirent.name !== ".") continue; // Keep ignoring hidden, except root itself if requested
+        if (ignoredNames.has(dirent.name)) continue; // Skip ignored directories
 
-    ]); // Add folders to ignore here
+        entries.push({
+          name: dirent.name,
+          // Important: Send back the *absolute* path for the next request
+          path: path.join(absolutePath, dirent.name),
+          isDirectory: dirent.isDirectory(),
+        });
+      }
 
-    const dir = await fs.opendir(absolutePath);
-    for await (const dirent of dir) {
-      // Potentially filter out hidden files, specific types, etc.
-      if (dirent.name.startsWith('.') && dirent.name !== '.') continue; // Keep ignoring hidden, except root itself if requested
-      if (ignoredNames.has(dirent.name)) continue; // Skip ignored directories
-
-      entries.push({
-        name: dirent.name,
-        // Important: Send back the *absolute* path for the next request
-        path: path.join(absolutePath, dirent.name),
-        isDirectory: dirent.isDirectory(),
-      });
-    }
-
-    // Sort entries (optional, directories first, then alphabetically)
-    entries.sort((a, b) => {
+      // Sort entries (optional, directories first, then alphabetically)
+      entries.sort((a, b) => {
         if (a.isDirectory !== b.isDirectory) {
-            return a.isDirectory ? -1 : 1; // Directories first
+          return a.isDirectory ? -1 : 1; // Directories first
         }
         return a.name.localeCompare(b.name); // Then alphabetical
-    });
+      });
 
-
-    console.log(`[Main Process] Sending listing for ${absolutePath}`);
-    return { path: absolutePath, entries: entries };
-
-  } catch (error: any) {
-    console.error(`[Main Process] Error reading directory ${absolutePath}:`, error);
-    // Re-throw the error so the renderer's catch block receives it
-    throw new Error(`Failed to read directory '${absolutePath}': ${error.message}`);
-  }
-});
+      console.log(`[Main Process] Sending listing for ${absolutePath}`);
+      return { path: absolutePath, entries: entries };
+    } catch (error: any) {
+      console.error(
+        `[Main Process] Error reading directory ${absolutePath}:`,
+        error,
+      );
+      // Re-throw the error so the renderer's catch block receives it
+      throw new Error(
+        `Failed to read directory '${absolutePath}': ${error.message}`,
+      );
+    }
+  },
+);
 // --- End IPC Handler ---
 
 // --- IPC Handler for Executing Terminal Commands ---
@@ -204,26 +273,33 @@ ipcMain.handle('execute-terminal-command', async (event: IpcMainInvokeEvent, com
 // --- IPC Handler for Agent Interaction ---
 // Re-enable this handler
 // Import the agent interaction function
-import { runAgentInteraction } from './app/agent';
+import { runAgentInteraction } from "./app/agent";
 
 // Re-enable this handler by removing the block comment
-ipcMain.handle('run-agent', async (event: IpcMainInvokeEvent, input: string): Promise<string> => {
-  console.log(`[Main Process] Received run-agent request with input: ${input}`);
-  try {
-    // We might want to pass a session/thread ID from the frontend later
-    const aiResponse = await runAgentInteraction(input);
-    // Return the content of the AI's final message
-    // We might want to return the full message structure later
-    // Ensure this returns a string as expected by app.tsx
-    const responseContent = typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content);
-    return responseContent;
-  } catch (error: any) {
-    console.error('[Main Process] Error running agent interaction:', error);
-    // Re-throw or return a formatted error message to the renderer
-    // Return error message as string to the UI
-    return `Error: Agent execution failed: ${error.message}`;
-  }
-});
+ipcMain.handle(
+  "run-agent",
+  async (event: IpcMainInvokeEvent, input: string): Promise<string> => {
+    console.log(
+      `[Main Process] Received run-agent request with input: ${input}`,
+    );
+    try {
+      // We might want to pass a session/thread ID from the frontend later
+      const aiResponse = await runAgentInteraction(input);
+      // Return the content of the AI's final message
+      // We might want to return the full message structure later
+      // Ensure this returns a string as expected by app.tsx
+      const responseContent = typeof aiResponse.content === "string"
+        ? aiResponse.content
+        : JSON.stringify(aiResponse.content);
+      return responseContent;
+    } catch (error: any) {
+      console.error("[Main Process] Error running agent interaction:", error);
+      // Re-throw or return a formatted error message to the renderer
+      // Return error message as string to the UI
+      return `Error: Agent execution failed: ${error.message}`;
+    }
+  },
+);
 // --- End Agent IPC Handler ---
 
 export default class Main {
@@ -254,30 +330,38 @@ export default class Main {
   static bootstrapTerminalServer() {
     const port = 8081;
     const wss = new WebSocketServer({ port });
-    console.log(`[Main Process] Terminal WebSocket Server listening on port ${port}`);
+    console.log(
+      `[Main Process] Terminal WebSocket Server listening on port ${port}`,
+    );
 
-    wss.on('connection', (ws) => {
-      console.log('[Main Process] Terminal client connected via WebSocket');
+    wss.on("connection", (ws) => {
+      console.log("[Main Process] Terminal client connected via WebSocket");
 
       // Spawn pty process
-      const shellPath = os.platform() === 'win32' ? 'powershell.exe' : (process.env.SHELL || 'bash');
+      const shellPath = os.platform() === "win32"
+        ? "powershell.exe"
+        : (process.env.SHELL || "bash");
       const ptyProcess = pty.spawn(shellPath, [], {
-        name: 'xterm-color', // Corresponds to xterm.js terminal type
+        name: "xterm-color", // Corresponds to xterm.js terminal type
         cols: 80, // Default size, will be updated on resize event
         rows: 30,
         cwd: process.env.HOME, // Start in user's home directory
         env: process.env, // Use current environment variables
       });
 
-      console.log(`[Main Process] Spawned pty process with PID: ${ptyProcess.pid}`);
+      console.log(
+        `[Main Process] Spawned pty process with PID: ${ptyProcess.pid}`,
+      );
 
       // --- Store reference to the active process ---
       if (activePtyProcess) {
-         // Kill previous pty if a new connection is made (simple single-session handling)
-         console.warn(`[Main Process] Killing previous pty process ${activePtyProcess.pid} due to new connection.`);
-         try {
-            activePtyProcess.kill();
-         } catch (e) { /* Ignore error if already dead */ }
+        // Kill previous pty if a new connection is made (simple single-session handling)
+        console.warn(
+          `[Main Process] Killing previous pty process ${activePtyProcess.pid} due to new connection.`,
+        );
+        try {
+          activePtyProcess.kill();
+        } catch (e) { /* Ignore error if already dead */ }
       }
       activePtyProcess = ptyProcess;
       // --- End store reference ---
@@ -289,58 +373,75 @@ export default class Main {
             ws.send(data);
           }
         } catch (err) {
-          console.error('[Main Process] Error sending data over WebSocket:', err);
+          console.error(
+            "[Main Process] Error sending data over WebSocket:",
+            err,
+          );
         }
       });
 
       // Handle messages from WebSocket (client -> pty)
-      ws.on('message', (rawMessage) => {
+      ws.on("message", (rawMessage) => {
         try {
           const message = JSON.parse(rawMessage.toString());
 
-          if (message.type === 'input') {
+          if (message.type === "input") {
             ptyProcess.write(message.data);
-          } else if (message.type === 'resize') {
+          } else if (message.type === "resize") {
             if (message.cols && message.rows) {
               ptyProcess.resize(message.cols, message.rows);
-              console.log(`[Main Process] Resized pty ${ptyProcess.pid} to ${message.cols}x${message.rows}`);
+              console.log(
+                `[Main Process] Resized pty ${ptyProcess.pid} to ${message.cols}x${message.rows}`,
+              );
             }
           }
         } catch (error) {
-          console.error('[Main Process] Failed to parse WebSocket message or handle pty command:', error);
+          console.error(
+            "[Main Process] Failed to parse WebSocket message or handle pty command:",
+            error,
+          );
         }
       });
 
       // Handle WebSocket close
-      ws.on('close', () => {
-        console.log(`[Main Process] Terminal client WebSocket closed. Killing pty process ${ptyProcess.pid}.`);
+      ws.on("close", () => {
+        console.log(
+          `[Main Process] Terminal client WebSocket closed. Killing pty process ${ptyProcess.pid}.`,
+        );
         ptyProcess.kill(); // This triggers the onExit handler
         // --- Clear reference if this was the active process ---
         if (activePtyProcess && activePtyProcess.pid === ptyProcess.pid) {
           activePtyProcess = null;
-           console.log('[Main Process] Cleared active pty process reference.');
+          console.log("[Main Process] Cleared active pty process reference.");
         }
         // --- End clear reference ---
       });
 
       // Handle WebSocket error
-      ws.on('error', (error) => {
-        console.error('[Main Process] WebSocket error:', error);
+      ws.on("error", (error) => {
+        console.error("[Main Process] WebSocket error:", error);
         // Attempt to kill pty if WebSocket errors out
         try {
           ptyProcess.kill();
         } catch (killError) {
-          console.error(`[Main Process] Error killing pty ${ptyProcess.pid} after WebSocket error:`, killError);
+          console.error(
+            `[Main Process] Error killing pty ${ptyProcess.pid} after WebSocket error:`,
+            killError,
+          );
         }
       });
 
       // Handle pty exit
       ptyProcess.onExit(({ exitCode, signal }) => {
-        console.log(`[Main Process] Pty process ${ptyProcess.pid} exited with code ${exitCode}, signal ${signal}`);
+        console.log(
+          `[Main Process] Pty process ${ptyProcess.pid} exited with code ${exitCode}, signal ${signal}`,
+        );
         // --- Clear reference if this was the active process ---
-         if (activePtyProcess && activePtyProcess.pid === ptyProcess.pid) {
+        if (activePtyProcess && activePtyProcess.pid === ptyProcess.pid) {
           activePtyProcess = null;
-           console.log('[Main Process] Cleared active pty process reference on exit.');
+          console.log(
+            "[Main Process] Cleared active pty process reference on exit.",
+          );
         }
         // --- End clear reference ---
         // Close WebSocket if pty process exits unexpectedly
@@ -350,11 +451,13 @@ export default class Main {
       });
     });
 
-    wss.on('error', (error) => {
-      console.error('[Main Process] WebSocket Server Error:', error);
+    wss.on("error", (error) => {
+      console.error("[Main Process] WebSocket Server Error:", error);
       // Handle specific errors like EADDRINUSE
-      if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-        console.error(`[Main Process] Port ${port} is already in use. Terminal server cannot start.`);
+      if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+        console.error(
+          `[Main Process] Port ${port} is already in use. Terminal server cannot start.`,
+        );
         // Optionally notify the user through the UI
       }
     });
@@ -414,7 +517,9 @@ Main.bootstrapAppEvents();
 // --- End File Watcher Setup ---
 
 // Ensure graceful shutdown of the watcher (optional but good practice)
-app.on('before-quit', () => {
+app.on("before-quit", () => {
   // watcher.close().then(() => console.log('[Main Process] File watcher closed.')); // Old line
-  App.fileWatcher?.close().then(() => console.log('[Main Process] File watcher closed via App class.')); // Updated line
+  App.fileWatcher?.close().then(() =>
+    console.log("[Main Process] File watcher closed via App class.")
+  ); // Updated line
 });

@@ -37,6 +37,11 @@ declare global {
 
       // Added based on main.preload.ts update
       ipcInvoke: (channel: string, ...args: any[]) => Promise<any>;
+
+      // --- ADDED --- 
+      readFile: (path: string) => Promise<string | null>;
+      resolvePath: (relativePath: string) => Promise<string>; 
+      // --- END ADDED ---
     };
   }
 }

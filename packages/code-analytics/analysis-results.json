@@ -1,0 +1,274 @@
+{
+  "analyzedAt": "2025-03-31T10:25:21.454Z",
+  "results": {
+    "/Users/boss/Documents/uno/packages/code-analytics/src/analyzers/complexity.ts": [],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/analyzers/deadCode.ts": [
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 24",
+        "location": {
+          "start": {
+            "row": 29,
+            "column": 4
+          },
+          "end": {
+            "row": 94,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 24
+        }
+      },
+      {
+        "type": "function-length",
+        "severity": "warning",
+        "message": "Function/Method '<anonymous>' is too long (62 lines, max 50). Consider refactoring.",
+        "location": {
+          "start": {
+            "row": 29,
+            "column": 4
+          },
+          "end": {
+            "row": 29,
+            "column": 15
+          }
+        },
+        "context": {
+          "lineCount": 62,
+          "functionName": "<anonymous>"
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "warning",
+        "message": "Function has high complexity score of 6",
+        "location": {
+          "start": {
+            "row": 97,
+            "column": 4
+          },
+          "end": {
+            "row": 119,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 6
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "warning",
+        "message": "Function has high complexity score of 10",
+        "location": {
+          "start": {
+            "row": 122,
+            "column": 4
+          },
+          "end": {
+            "row": 163,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 10
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 12",
+        "location": {
+          "start": {
+            "row": 166,
+            "column": 4
+          },
+          "end": {
+            "row": 192,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 12
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 15",
+        "location": {
+          "start": {
+            "row": 195,
+            "column": 4
+          },
+          "end": {
+            "row": 229,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 15
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "warning",
+        "message": "Function has high complexity score of 7",
+        "location": {
+          "start": {
+            "row": 232,
+            "column": 4
+          },
+          "end": {
+            "row": 254,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 7
+        }
+      }
+    ],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/analyzers/functionLength.ts": [
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 19",
+        "location": {
+          "start": {
+            "row": 15,
+            "column": 4
+          },
+          "end": {
+            "row": 91,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 19
+        }
+      },
+      {
+        "type": "function-length",
+        "severity": "warning",
+        "message": "Function/Method '<anonymous>' is too long (77 lines, max 50). Consider refactoring.",
+        "location": {
+          "start": {
+            "row": 15,
+            "column": 4
+          },
+          "end": {
+            "row": 15,
+            "column": 15
+          }
+        },
+        "context": {
+          "lineCount": 77,
+          "functionName": "<anonymous>"
+        }
+      }
+    ],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/analyzers/namingConvention.ts": [
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 13",
+        "location": {
+          "start": {
+            "row": 21,
+            "column": 4
+          },
+          "end": {
+            "row": 51,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 13
+        }
+      },
+      {
+        "type": "complexity",
+        "severity": "error",
+        "message": "Function has high complexity score of 17",
+        "location": {
+          "start": {
+            "row": 54,
+            "column": 4
+          },
+          "end": {
+            "row": 141,
+            "column": 5
+          }
+        },
+        "context": {
+          "complexity": 17
+        }
+      },
+      {
+        "type": "function-length",
+        "severity": "warning",
+        "message": "Function/Method '<anonymous>' is too long (88 lines, max 50). Consider refactoring.",
+        "location": {
+          "start": {
+            "row": 54,
+            "column": 4
+          },
+          "end": {
+            "row": 54,
+            "column": 15
+          }
+        },
+        "context": {
+          "lineCount": 88,
+          "functionName": "<anonymous>"
+        }
+      }
+    ],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/analyzers/types.ts": [],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/cli.ts": [
+      {
+        "type": "complexity",
+        "severity": "warning",
+        "message": "Function has high complexity score of 9",
+        "location": {
+          "start": {
+            "row": 33,
+            "column": 0
+          },
+          "end": {
+            "row": 95,
+            "column": 1
+          }
+        },
+        "context": {
+          "complexity": 9
+        }
+      },
+      {
+        "type": "function-length",
+        "severity": "warning",
+        "message": "Function/Method 'runAnalysis' is too long (63 lines, max 50). Consider refactoring.",
+        "location": {
+          "start": {
+            "row": 33,
+            "column": 0
+          },
+          "end": {
+            "row": 33,
+            "column": 11
+          }
+        },
+        "context": {
+          "lineCount": 63,
+          "functionName": "runAnalysis"
+        }
+      }
+    ],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/index.ts": [],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/parser/parser.ts": [],
+    "/Users/boss/Documents/uno/packages/code-analytics/src/tree-sitter-typescript.d.ts": []
+  }
+}
