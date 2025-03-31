@@ -14,3 +14,7 @@ This file tracks known areas for improvement and refactoring in the Uno project.
 - Find way for file explorer to show node_modules and other large or . files without hitting the max file open limit.
 
 - Remove small gap between analysis header and background content
+
+- embed n8n bundled or through docker, ask if docker is better because we can bundle a bunch of self hosted stuff and provide it for free to our users.
+
+- add codebase indexing
