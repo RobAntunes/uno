@@ -1,0 +1,23 @@
+diff --git a/dist/cjs/client/auth.js b/dist/cjs/client/auth.js
+index 636d770708f98f764f6fccc0da3d7d1126a75bc7..1948d3a2d2aebd6c4cc7c56581f4bb83cf288007 100644
+--- a/dist/cjs/client/auth.js
++++ b/dist/cjs/client/auth.js
+@@ -10,7 +10,7 @@ exports.startAuthorization = startAuthorization;
+ exports.exchangeAuthorization = exchangeAuthorization;
+ exports.refreshAuthorization = refreshAuthorization;
+ exports.registerClient = registerClient;
+-const pkce_challenge_1 = __importDefault(require("pkce-challenge"));
++
+ const types_js_1 = require("../types.js");
+ const auth_js_1 = require("../shared/auth.js");
+ class UnauthorizedError extends Error {
+@@ -137,7 +137,8 @@ async function startAuthorization(serverUrl, { metadata, clientInformation, redi
+         authorizationUrl = new URL("/authorize", serverUrl);
+     }
+     // Generate PKCE challenge
+-    const challenge = await (0, pkce_challenge_1.default)();
++    const pkce = await import("pkce-challenge"); // Dynamically import the module
++    const challenge = await pkce.default();
+     const codeVerifier = challenge.code_verifier;
+     const codeChallenge = challenge.code_challenge;
+     authorizationUrl.searchParams.set("response_type", responseType);
