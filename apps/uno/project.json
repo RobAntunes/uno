@@ -25,7 +25,7 @@
       "defaultConfiguration": "development",
       "options": {
         "buildTarget": "uno:build",
-        "port": 4200
+        "port": 4201
       },
       "configurations": {
         "development": {

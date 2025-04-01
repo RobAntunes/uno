@@ -1,5 +1,21 @@
 import * as dotenv from "dotenv";
-import * as path from "path";
+import path from 'node:path'; // Use default import for path
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, dialog } from 'electron';
+import { fork, ChildProcess, Serializable } from 'node:child_process';
+import { promises as fsPromises } from 'node:fs';
+import { WebSocket, WebSocketServer } from "ws";
+import * as pty from "node-pty";
+import * as os from "os";
+// import { fileURLToPath } from 'node:url'; // REMOVE - Unused
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { EventEmitter } from 'node:events'; // Import EventEmitter
+
+// Use path alias now that webpack is configured
+import { chunkCode } from './services/indexing/chunker';
+import App from "./app/app";
+import SquirrelEvents from "./app/events/squirrel.events";
+import ElectronEvents from "./app/events/electron.events";
+// import { environment } from './environments/environment.js'; // REMOVE - Unused
 
 // Load environment variables from the root directory's .env file first
 // Adjust the path relative to the compiled main.js in dist/
@@ -20,17 +36,6 @@ if (!process.env.ANTHROPIC_API_KEY) {
 } else {
   console.log("INFO: ANTHROPIC_API_KEY loaded successfully.");
 }
-
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import SquirrelEvents from "./app/events/squirrel.events";
-import ElectronEvents from "./app/events/electron.events";
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
-import App from "./app/app";
-import * as fs from "fs/promises";
-import { WebSocket, WebSocketServer } from "ws"; // Import WebSocket server
-import * as pty from "node-pty"; // Import node-pty
-import * as os from "os"; // Import os module
-// import * as chokidar from 'chokidar'; // Removed
 
 // --- Define the structure for MCP Server config (matching mcp.json)
 // Note: This is simplified; add other fields like transport, url etc. if needed by the handler
@@ -57,7 +62,7 @@ const MCP_CONFIG_PATH = path.resolve(process.cwd(), "mcp.json");
 ipcMain.handle("get-mcp-servers", async (): Promise<McpConfig> => {
   console.log(`[Main Process] Reading MCP config from: ${MCP_CONFIG_PATH}`);
   try {
-    const fileContent = await fs.readFile(MCP_CONFIG_PATH, "utf-8");
+    const fileContent = await fsPromises.readFile(MCP_CONFIG_PATH, "utf-8");
     const config = JSON.parse(fileContent) as McpConfig;
     // Basic validation
     if (!config || typeof config.servers !== "object") {
@@ -102,7 +107,7 @@ ipcMain.handle(
         throw new Error("Invalid configuration format provided for saving.");
       }
       const jsonString = JSON.stringify(updatedConfig, null, 2); // Pretty print JSON
-      await fs.writeFile(MCP_CONFIG_PATH, jsonString, "utf-8");
+      await fsPromises.writeFile(MCP_CONFIG_PATH, jsonString, "utf-8");
       console.log("[Main Process] Successfully saved MCP config.");
     } catch (error: any) {
       console.error("[Main Process] Error saving MCP config:", error);
@@ -118,7 +123,7 @@ ipcMain.handle("read-file", async (event, filePath) => {
   try {
     // Resolve path relative to the project root (assuming Electron runs from project root)
     const safePath = path.resolve(process.cwd(), filePath);
-    const content = await fs.readFile(safePath, "utf-8");
+    const content = await fsPromises.readFile(safePath, "utf-8");
     return content;
   } catch (error: any) {
     console.error(`[IPC:read-file] Error reading ${filePath}:`, error.message);
@@ -214,7 +219,7 @@ ipcMain.handle(
       const entries: FSEntry[] = [];
       const ignoredNames = new Set([".git", "node_modules", "dist"]); // Add folders to ignore here
 
-      const dir = await fs.opendir(absolutePath);
+      const dir = await fsPromises.opendir(absolutePath);
       for await (const dirent of dir) {
         // Potentially filter out hidden files, specific types, etc.
         if (dirent.name.startsWith(".") && dirent.name !== ".") continue; // Keep ignoring hidden, except root itself if requested
@@ -301,6 +306,311 @@ ipcMain.handle(
   },
 );
 // --- End Agent IPC Handler ---
+
+// --- ADDED: IPC Handlers for Indexing ---
+
+// --- Helper: Initialize vector store in main process ---
+export async function initializeMainVectorStore() {
+    // Now just sends a message to the service
+    console.log('[Main Process] Requesting service initialization...');
+    sendToIndexingService({ type: 'initialize' });
+}
+
+// Counter for outstanding chunk requests
+let inFlightChunkCount = 0;
+// Event emitter for backpressure signaling
+const backpressureEmitter = new EventEmitter();
+// Concurrency limit for indexing chunks
+const MAX_CONCURRENT_CHUNKS = 3; // Reduced from 10
+
+// Add indexing handler
+ipcMain.handle('start-indexing', async (event) => {
+  const sender = event.sender;
+  
+  try {
+    // Check if the vector store itself is initialized, not just the process
+    if (!vectorStoreInitialized) {
+      throw new Error('Indexing service has not finished initializing the vector store. Please wait and try again.');
+    }
+
+    // Signal start of indexing
+    sender.send('indexing-start');
+    
+    // Get the workspace directory (assuming it's the project root)
+    const workspaceDir = process.cwd();
+    
+    // Process files using the indexing service directly
+    const ignoredDirs = new Set(['node_modules', '.git', '.angular', '.cache', '.idea', '.nx', '.vscode', 'dist', 'out', '.lancedb']);
+    let filesScanned = 0;
+    let chunksSent = 0;
+
+    // Helper function to wait if concurrency limit is reached
+    async function waitForSlot() {
+        if (inFlightChunkCount < MAX_CONCURRENT_CHUNKS) {
+            return; // Slot available, no need to wait
+        }
+        
+        console.log(`[Main Process] waitForSlot: Limit (${MAX_CONCURRENT_CHUNKS}) reached. Count: ${inFlightChunkCount}. Waiting...`);
+        await new Promise<void>(resolve => backpressureEmitter.once('slotFreed', resolve));
+        console.log(`[Main Process] waitForSlot: Slot freed event received! Count is now ${inFlightChunkCount}. Continuing...`);
+    }
+
+    async function scanDirectory(dirPath: string) {
+      try {
+        const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dirPath, entry.name);
+          if (entry.isDirectory()) {
+            if (!ignoredDirs.has(entry.name)) {
+              await scanDirectory(fullPath);
+            }
+          } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            const allowedExts = new Set([
+              // JavaScript/TypeScript
+              '.ts', '.js', '.tsx', '.jsx', '.mjs', '.cjs',
+              // Web
+              '.html', '.htm', '.css', '.scss', '.sass', '.less', '.svg',
+              // Config files
+              '.json', '.yaml', '.yml', '.xml', '.env',
+              // Documentation
+              '.md', '.mdx',
+              // Templates
+              '.ejs', '.hbs', '.pug', '.vue', '.svelte',
+              // GraphQL
+              '.graphql', '.gql',
+              // Web Assembly
+              '.wasm',
+              // Package files
+              'package.json', 'tsconfig.json', 'webpack.config.js', 'rollup.config.js', 'vite.config.js'
+            ]);
+
+            if (allowedExts.has(ext) || allowedExts.has(entry.name)) {
+              filesScanned++;
+              try {
+                const content = await fsPromises.readFile(fullPath, 'utf-8');
+                const chunks = chunkCode(fullPath, content);
+                sender.send('indexing-progress', {
+                  filePath: fullPath,
+                  progress: 50
+                });
+
+                for (const chunk of chunks) {
+                  await waitForSlot(); // Wait for an available slot
+                  inFlightChunkCount++; // Increment before sending
+                  chunksSent++;
+                  
+                  sendToIndexingService({ type: 'addChunk', payload: chunk });
+                }
+              } catch (fileError: any) {
+                sender.send('indexing-error', {
+                  filePath: fullPath,
+                  error: fileError?.message || 'Unknown file processing error'
+                });
+              }
+            }
+          }
+        }
+      } catch (dirError: any) {
+        sender.send('indexing-error', {
+          filePath: dirPath,
+          error: dirError?.message || 'Unknown directory processing error'
+        });
+      }
+    }
+
+    await scanDirectory(workspaceDir);
+    // Send overall completion signal ONLY after scanDirectory finishes
+    console.log(`[Main Process] Indexing finished. Files scanned: ${filesScanned}, Chunks sent: ${chunksSent}`);
+    sender.send('indexing-finished', { 
+        success: true, 
+        filesScanned, 
+        chunksSent 
+    });
+    return { success: true, filesScanned, chunksSent };
+    
+  } catch (error: any) {
+    // Send overall completion signal with error status
+    console.error(`[Main Process] Indexing failed with error: ${error?.message}`);
+    sender.send('indexing-finished', { 
+        success: false, 
+        error: error?.message || 'Unknown error during indexing' 
+    });
+    // Re-throw or return error for the ipcMain.handle promise
+    return { success: false, message: error?.message || 'Unknown error during indexing' };
+  }
+});
+
+// Modified Handler to get the combined index status - Now triggers getMainIndexStatus
+ipcMain.handle('get-index-status', async () => {
+    console.log("[Main Process] Received 'get-index-status' request.");
+    if (!indexingServiceReady) {
+        return { itemCount: 0, status: 'disconnected' };
+    }
+    sendToIndexingService({ type: 'getStatus' });
+    // Status will be sent back asynchronously via 'index-status-result' event
+    return { message: "Status request sent" };
+});
+
+// --- END Indexing Handlers ---
+
+// --- ADDED: Indexing Service Management ---
+let indexingServiceProcess: ChildProcess | null = null;
+let indexingServiceReady = false; // Indicates if the service process is running and responsive
+let vectorStoreInitialized = false; // Indicates if the vector store inside the service is successfully initialized
+
+export function launchIndexingService() {
+  if (indexingServiceProcess) {
+    console.log('[Main Process] Indexing service already launched.');
+    return;
+  }
+  console.log('[Main Process] Launching indexing service using child_process.fork...');
+
+  // Path to the compiled service script
+  const indexingServicePath = path.join(__dirname, 'services/indexing/service.js');
+  console.log(`[Main Process] Attempting to fork service script at: ${indexingServicePath}`);
+
+  try {
+    indexingServiceProcess = fork(indexingServicePath, [], {
+        stdio: ['pipe', 'pipe', 'pipe', 'ipc'], // Ensure IPC channel is piped
+        // execPath: process.execPath, // Might be needed? Try without first.
+    });
+    indexingServiceReady = false; // Reset ready state
+    vectorStoreInitialized = false; // Reset initialized state
+
+    if (!indexingServiceProcess || typeof indexingServiceProcess.pid === 'undefined') {
+        throw new Error('Failed to fork child process (PID undefined).');
+    }
+
+    console.log(`[Main Process] Forked indexing service process (PID: ${indexingServiceProcess.pid})`);
+
+    // Optional: Log stdout/stderr from the service for debugging
+    indexingServiceProcess.stdout?.on('data', (data) => {
+        console.log(`[Indexing Service STDOUT] ${data.toString().trim()}`);
+    });
+    indexingServiceProcess.stderr?.on('data', (data) => {
+        console.error(`[Indexing Service STDERR] ${data.toString().trim()}`);
+    });
+
+    // Setup message handling (API is slightly different for ChildProcess vs UtilityProcess)
+    setupServiceMessageHandling(indexingServiceProcess);
+
+    indexingServiceProcess.on('exit', (code, signal) => { // Exit handler has signal arg
+      console.error(`[Main Process] Indexing service exited with code: ${code}, signal: ${signal}`);
+      indexingServiceProcess = null;
+      indexingServiceReady = false;
+      vectorStoreInitialized = false; // Reset on exit
+      App.mainWindow?.webContents.send('indexing-service-status', { status: 'crashed', error: `Exited with code ${code}, signal ${signal}` });
+    });
+
+    indexingServiceProcess.on('error', (err) => { // Add specific error handler for fork issues
+        console.error('[Main Process] Indexing service process error:', err);
+        indexingServiceProcess = null;
+        indexingServiceReady = false;
+        vectorStoreInitialized = false; // Reset on error
+        App.mainWindow?.webContents.send('indexing-service-status', { status: 'error', error: `Process error: ${err.message}` });
+    });
+
+  } catch (error) {
+      console.error('[Main Process] Failed to fork indexing service:', error);
+      indexingServiceProcess = null;
+      indexingServiceReady = false;
+      vectorStoreInitialized = false; // Reset on fork failure
+      App.mainWindow?.webContents.send('indexing-service-status', { status: 'error', error: `Failed to fork: ${error}` });
+  }
+}
+
+function setupServiceMessageHandling(processInstance: ChildProcess) {
+    processInstance.on('message', (message: Serializable) => {
+        // Basic type check first
+        if (typeof message !== 'object' || message === null || !('type' in message)) {
+            console.warn('[Main Process] Received malformed message from service:', message);
+            return;
+        }
+        // Now it's safe to access type
+        console.log('[Main Process] Received message from indexing service:', message.type);
+        
+        const msg = message as { type: string; payload?: any }; // Type assertion after check
+
+        switch (msg.type) {
+            case 'ready':
+                console.log('[Main Process] Indexing service process reported ready.');
+                indexingServiceReady = true;
+                vectorStoreInitialized = false; // Explicitly false until confirmed by 'initialized'
+                // Send initialize command now that the service process is ready
+                sendToIndexingService({ type: 'initialize' }); 
+                break;
+            case 'initialized':
+                console.log('[Main Process] Indexing service initialization result:', msg.payload);
+                if (msg.payload?.success) {
+                    vectorStoreInitialized = true; // Set to true on successful initialization
+                    App.mainWindow?.webContents.send('indexing-service-status', { 
+                        status: 'initialized' 
+                    });
+                } else {
+                    vectorStoreInitialized = false; // Set to false on failed initialization
+                    console.error('[Main Process] Initialization failed:', msg.payload?.error);
+                    App.mainWindow?.webContents.send('indexing-service-status', { 
+                        status: 'error',
+                        error: msg.payload?.error || 'Failed to initialize indexing service'
+                    });
+                }
+                break;
+            case 'addChunkResult':
+                console.log('[Main Process] Add chunk result:', msg.payload);
+                if (msg.payload?.chunkId) {
+                     const былInFlightCount = inFlightChunkCount; // Store previous value for check
+                     inFlightChunkCount = Math.max(0, inFlightChunkCount - 1); // Decrement count
+                     
+                     // If count was at the limit before decrementing, signal that a slot is now free
+                     if (былInFlightCount >= MAX_CONCURRENT_CHUNKS) {
+                         console.log(`[Main Process] addChunkResult: Emitting slotFreed. Previous count: ${былInFlightCount}, New count: ${inFlightChunkCount}`);
+                         backpressureEmitter.emit('slotFreed');
+                     }
+                }
+                 // Handle success/failure 
+                break;
+            case 'statusResult':
+                 console.log('[Main Process] Indexing status result:', msg.payload);
+                 // Forward status to renderer or handle here
+                 App.mainWindow?.webContents.send('index-status-result', msg.payload); // Use App.mainWindow
+                 break;
+            case 'serviceError':
+                 console.error('[Main Process] Received error from indexing service:', msg.payload);
+                 // Handle service errors (e.g., notify user, attempt restart?)
+                 break;
+            default:
+                console.warn('[Main Process] Received unknown message type from service:', msg.type);
+        }
+    });
+}
+
+function sendToIndexingService(message: any) {
+    if (!indexingServiceProcess) {
+        console.error('[Main Process] Cannot send message: Indexing service not running.');
+        return false; 
+    }
+    
+    // Only enforce ready check for addChunk messages
+    if (message.type === 'addChunk' && !indexingServiceReady) {
+        console.error('[Main Process] Cannot add chunks: Service not ready.');
+        return false;
+    }
+    
+    try {
+        console.log('[Main Process] Sending message to service:', message?.type);
+        const success = indexingServiceProcess.send(message);
+        if (!success) {
+             console.error('[Main Process] Failed to send message to indexing service (channel closed?).');
+             return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('[Main Process] Failed to send message to indexing service:', error);
+        return false;
+    }
+}
+// --- END Indexing Service Management ---
 
 export default class Main {
   static initialize() {
@@ -522,4 +832,30 @@ app.on("before-quit", () => {
   App.fileWatcher?.close().then(() =>
     console.log("[Main Process] File watcher closed via App class.")
   ); // Updated line
+});
+
+// === IPC Handlers ===
+
+// Simple handler to open directory dialog
+ipcMain.handle('open-directory-dialog', async () => {
+    if (!App.mainWindow) { // Add null check
+         console.error("Cannot open directory dialog: main window not available.");
+         return undefined;
+    }
+    const result = await dialog.showOpenDialog(App.mainWindow, { // Now safe
+        properties: ['openDirectory']
+    });
+    return result.filePaths[0]; // Return selected path or undefined
+});
+
+// Handler to initialize vector store (now primarily sends message to service)
+ipcMain.handle('initialize-vector-store', async () => {
+    console.log("[Main Process] Received 'initialize-vector-store' request.");
+    if (!indexingServiceProcess || !indexingServiceReady) {
+         console.warn("[Main Process] Cannot initialize: Indexing service not ready.");
+         return { success: false, message: "Indexing service not ready." };
+    }
+    sendToIndexingService({ type: 'initialize' });
+    // We don't wait here, service will send 'initialized' message back
+    return { success: true, message: "Initialization request sent to service." };
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AlertCircle, CheckCircle, Info, TriangleAlert, ShieldAlert } from 'lucide-react'; // Icons for severity
 // Import Tabs components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"; 
+import IndexView from './IndexView';
 
 // --- Updated Types --- 
 // No location/context/severity, add analyzer/line/diagnostic
@@ -119,8 +120,16 @@ const CodeAnalysisView: React.FC = () => {
     // --- Memoized calculation for overview and filtered results ---
     const { overviewSummary, categorizedResults } = useMemo(() => {
         if (!analysisData) {
-            // Return empty structure matching the new categorized format
-            return { overviewSummary: {}, categorizedResults: {} }; 
+            // Return empty structure with all categories initialized
+            return { 
+                overviewSummary: {}, 
+                categorizedResults: {
+                    quality: {},
+                    security: {},
+                    performance: {},
+                    other: {}
+                }
+            }; 
         }
 
         const summary: { [analyzerName: string]: { errors: number; warnings: number; info: number; total: number } } = {};
@@ -317,17 +326,10 @@ const CodeAnalysisView: React.FC = () => {
     // --- Render Logic (Main component render) --- 
     const renderContent = () => {
          if (loading) {
-            return <div className="p-4 text-center text-muted-foreground">Loading analysis results...</div>;
+            return <div className="p-4 text-center">Loading analysis results...</div>;
         }
         if (error) {
-            return (
-                 <div className="p-4 text-red-500 flex flex-col items-center">
-                     <AlertCircle className="h-6 w-6 mb-2" />
-                     <p className="font-semibold">Error loading results:</p>
-                     <p className="text-xs mt-1">{error}</p>
-                     {/* Add a retry button? */}
-                 </div>
-             );
+            return <div className="p-4 text-center text-red-500">{error}</div>;
         }
         if (!analysisData) {
             return <div className="p-4 text-center text-muted-foreground">No analysis results found. Run analysis first.</div>;
@@ -335,31 +337,41 @@ const CodeAnalysisView: React.FC = () => {
 
         // Tabbed Interface
         return (
-             <Tabs defaultValue="overview" className="flex-grow flex flex-col overflow-hidden">
-                 <TabsList className="shrink-0 border-b border-border rounded-none px-2 justify-start bg-muted/30">
-                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                     <TabsTrigger value="quality">Code Quality</TabsTrigger>
-                     <TabsTrigger value="security">Security</TabsTrigger>
-                     <TabsTrigger value="performance">Performance</TabsTrigger>
-                 </TabsList>
-                 <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-muted">
-                     <TabsContent value="overview">
-                         {renderOverview()}
-                     </TabsContent>
-                     <TabsContent value="quality">
-                         {renderFileSections(categorizedResults.quality)}
-                     </TabsContent>
-                     <TabsContent value="security">
-                         {/* DEBUG: Log securityResults before rendering */}
-                         {console.log("[CodeAnalysisView render] securityResults prop:", JSON.stringify(categorizedResults.security, null, 2))}
-                         {renderFileSections(categorizedResults.security, "security") /* Pass type for logging */}
-                     </TabsContent>
-                     <TabsContent value="performance">
-                         {renderFileSections(categorizedResults.performance)}
-                     </TabsContent>
-                 </div>
-             </Tabs>
-         );
+            <Tabs defaultValue="index" className="w-full">
+                <TabsList className="w-full justify-start">
+                    <TabsTrigger value="index">Index</TabsTrigger>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="quality">Code Quality</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                    <TabsTrigger value="performance">Performance</TabsTrigger>
+                    <TabsTrigger value="other">Other</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="index" className="mt-4">
+                    <IndexView />
+                </TabsContent>
+
+                <TabsContent value="overview" className="mt-4">
+                    {renderOverview()}
+                </TabsContent>
+
+                <TabsContent value="quality" className="mt-4">
+                    {renderFileSections(categorizedResults.quality, 'quality')}
+                </TabsContent>
+
+                <TabsContent value="security" className="mt-4">
+                    {renderFileSections(categorizedResults.security, 'security')}
+                </TabsContent>
+
+                <TabsContent value="performance" className="mt-4">
+                    {renderFileSections(categorizedResults.performance, 'performance')}
+                </TabsContent>
+
+                <TabsContent value="other" className="mt-4">
+                    {renderFileSections(categorizedResults.other, 'other')}
+                </TabsContent>
+            </Tabs>
+        );
     }
 
     return (

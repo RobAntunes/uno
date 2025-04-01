@@ -1,8 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
-    "types": ["node"]
+    "outDir": "../../dist/apps/uno-electron",
+    "types": ["node"],
+    "composite": true,
+    "module": "node16",
+    "moduleResolution": "node16",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2020",
+    "sourceMap": true
   },
   "exclude": [
     "**/*.spec.ts",
@@ -11,6 +18,10 @@
     "src/**/*.spec.ts",
     "src/**/*.test.ts"
   ],
-  "include": ["**/*.ts"],
-  "references": []
+  "include": ["**/*.ts", "../../libs/indexing/src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/indexing"
+    }
+  ]
 }

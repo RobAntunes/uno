@@ -26,16 +26,38 @@ contextBridge.exposeInMainWorld('electron', {
   saveMcpServers: (updatedConfig: McpConfig): Promise<void> => ipcRenderer.invoke('save-mcp-servers', updatedConfig),
   // --- End MCP Handlers ---
 
+  // Indexing methods
+  startIndexing: () => ipcRenderer.invoke('start-indexing'),
+  
+  // Indexing events
+  onIndexingStart: (callback: () => void) => 
+    ipcRenderer.on('indexing-start', () => callback()),
+  onIndexingProgress: (callback: (data: { filePath: string; progress: number }) => void) =>
+    ipcRenderer.on('indexing-progress', (_, data) => callback(data)),
+  onIndexingComplete: (callback: (data: { filePath: string }) => void) =>
+    ipcRenderer.on('indexing-complete', (_, data) => callback(data)),
+  onIndexingError: (callback: (data: { filePath: string; error: string }) => void) =>
+    ipcRenderer.on('indexing-error', (_, data) => callback(data)),
+    
+  removeIndexingStartListener: (callback: () => void) =>
+    ipcRenderer.removeListener('indexing-start', () => callback()),
+  removeIndexingProgressListener: (callback: (data: { filePath: string; progress: number }) => void) =>
+    ipcRenderer.removeListener('indexing-progress', (_, data) => callback(data)),
+  removeIndexingCompleteListener: (callback: (data: { filePath: string }) => void) =>
+    ipcRenderer.removeListener('indexing-complete', (_, data) => callback(data)),
+  removeIndexingErrorListener: (callback: (data: { filePath: string; error: string }) => void) =>
+    ipcRenderer.removeListener('indexing-error', (_, data) => callback(data)),
+
   ipcInvoke: (channel: string, ...args: any[]) => {
-    // Update allowed channels list - RE-ADD 'run-agent'
     const allowedChannels = [
-      'run-agent', // <-- RE-ADDED
+      'run-agent',
       'read-directory',
       'read-file',
       'resolve-path',
       'get-app-version',
-      'get-mcp-servers', // Allow getting MCP config
-      'save-mcp-servers' // Allow saving MCP config
+      'get-mcp-servers',
+      'save-mcp-servers',
+      'start-indexing' // Add the new channel
     ];
     if (allowedChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);

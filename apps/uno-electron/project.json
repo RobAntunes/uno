@@ -11,7 +11,11 @@
         "outputPath": "dist/apps/uno-electron",
         "main": "apps/uno-electron/src/main.ts",
         "tsConfig": "apps/uno-electron/tsconfig.app.json",
-        "assets": ["apps/uno-electron/src/assets"]
+        "assets": [
+          "apps/uno-electron/src/assets"
+        ],
+        "externalDependencies": "none",
+        "webpackConfig": "apps/uno-electron/webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -27,10 +31,31 @@
         }
       }
     },
-    "serve": {
-      "executor": "nx-electron:execute",
+    "compile-services": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/uno-electron/services"],
       "options": {
-        "buildTarget": "uno-electron:build"
+        "command": "mkdir -p dist/apps/uno-electron/services/indexing && node_modules/.bin/tsc apps/uno-electron/src/services/indexing/*.ts --outDir dist/apps/uno-electron/services/indexing --module esnext --moduleResolution bundler --target es2022 --skipLibCheck --sourceMap"
+      }
+    },
+    "build-all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx run uno-electron:compile-services",
+          "nx run uno-electron:build"
+        ],
+        "parallel": false
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx serve uno",
+          "wait-on http://localhost:4201 && nx run uno-electron:build-all && electron dist/apps/uno-electron/main.js"
+        ],
+        "parallel": true
       }
     },
     "package": {

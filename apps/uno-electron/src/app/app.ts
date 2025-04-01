@@ -1,9 +1,9 @@
 import { BrowserWindow, screen } from 'electron';
-import { rendererAppName, rendererAppPort } from './constants';
+import { rendererAppName } from './constants';
 import { environment } from '../environments/environment';
-import { join } from 'path';
-import { format } from 'url';
+import { join } from 'node:path';
 import * as chokidar from 'chokidar';
+import { launchIndexingService } from '../main';
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -30,45 +30,54 @@ export default class App {
     const watchPath = '.';
     console.log(`[App Class] Initializing file watcher. CWD: ${process.cwd()}, Watch Path: ${watchPath}`);
 
-    try {
-      App.fileWatcher = chokidar.watch(watchPath, {
-        ignored: [
-          /(^|[\\/\\])\\../,
-          /node_modules([\\/\\]|$)/,
-          /dist([\\/\\]|$)/,
-          /\.cache([\\/\\]|$)/,
-          /build([\\/\\]|$)/,
-        ],
-        persistent: true,
-        ignoreInitial: true,
-        depth: 99,
-      });
+    // Define ignored paths using a function or array of globs for more control
+    const ignoredPaths = [
+      '**/.git/**',         // Ignore all git files/folders
+      '**/node_modules/**', // Ignore all node_modules folders
+      '**/.nx/**',          // Ignore the Nx cache/config directory
+      '**/.lancedb/**',     // Ignore the LanceDB data directory
+      '**/dist/**',         // Ignore build output directories
+      '**/.angular/**',    // Ignore Angular cache
+      '**/.cache/**',       // Ignore general cache folders
+      '**/.idea/**',        // Ignore JetBrains IDE folders
+      '**/.vscode/**',      // Ignore VSCode folders
+      '**/out/**',          // Ignore other potential build outputs
+      /(^|[/\\])\.+/,     // Ignore hidden files/folders (dotfiles/dotfolders) like .env
+    ];
 
-      const sendFileChange = (eventType: string, filePath: string) => {
-        console.log(`[App Class] File ${eventType}: ${filePath}`);
-        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
-            App.mainWindow.webContents.send('file-changed', {
-                type: eventType,
-                path: filePath,
-            });
-        } else {
-            console.warn('[App Class] Main window not available to send file-changed event.');
-        }
-      };
+    App.fileWatcher = chokidar.watch(watchPath, {
+      // ignored: /(^|[/\\])\../, // Original pattern - less comprehensive
+      ignored: ignoredPaths,    // Use the array of ignored patterns
+      persistent: true,
+      ignoreInitial: true,    // Don't send events for files already present
+      depth: 15,              // REDUCE DEPTH from 99
+      awaitWriteFinish: {     // Try to reduce events for rapidly changing files
+        stabilityThreshold: 500,
+        pollInterval: 100
+      }
+    });
 
-      App.fileWatcher
-        .on('add', (filePath) => sendFileChange('add', filePath))
-        .on('change', (filePath) => sendFileChange('change', filePath))
-        .on('unlink', (filePath) => sendFileChange('unlink', filePath))
-        .on('addDir', (filePath) => sendFileChange('addDir', filePath))
-        .on('unlinkDir', (filePath) => sendFileChange('unlinkDir', filePath))
-        .on('error', (error) => console.error(`[App Class] Watcher error: ${error}`))
-        .on('ready', () => console.log('[App Class] File watcher ready.'));
+    const sendFileChange = (eventType: string, filePath: string) => {
+      console.log(`[App Class] File ${eventType}: ${filePath}`);
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+          App.mainWindow.webContents.send('file-changed', {
+              type: eventType,
+              path: filePath,
+          });
+      } else {
+          console.warn('[App Class] Main window not available to send file-changed event.');
+      }
+    };
 
-    } catch (error) {
-        console.error('[App Class] Failed to initialize file watcher:', error);
-        App.fileWatcher = null;
-    }
+    App.fileWatcher
+      .on('add', (filePath) => sendFileChange('add', filePath))
+      .on('change', (filePath) => sendFileChange('change', filePath))
+      .on('unlink', (filePath) => sendFileChange('unlink', filePath))
+      .on('addDir', (filePath) => sendFileChange('addDir', filePath))
+      .on('unlinkDir', (filePath) => sendFileChange('unlinkDir', filePath))
+      .on('error', (error) => console.error(`[App Class] Watcher error: ${error}`))
+      .on('ready', () => console.log('[App Class] File watcher ready.'));
+
   }
 
   private static onWindowAllClosed() {
@@ -77,12 +86,28 @@ export default class App {
     }
   }
 
-  private static onReady() {
+  private static async onReady() {
+    console.log("[App Class] onReady - Entering");
+    // Launch the indexing service
+    try {
+        console.log("[App Class] onReady - Calling launchIndexingService...");
+        launchIndexingService(); // Launch the service process
+        console.log("[App Class] onReady - launchIndexingService finished (service launching asynchronously).");
+        // We no longer await direct initialization here
+        // await initializeMainVectorStore(); // REMOVE or COMMENT OUT this line
+    } catch (error) {
+        console.error("[App Class] Failed to launch indexing service during onReady:", error);
+    }
+
+    // Proceed with window creation (no changes needed here)
     if (rendererAppName) {
       App.initMainWindow();
       App.loadMainWindow();
       App.initFileWatcher();
+    } else {
+        console.error('[App Class] Renderer app name not set.');
     }
+    console.log("[App Class] onReady - Exiting");
   }
 
   private static onActivate() {
@@ -119,16 +144,19 @@ export default class App {
   }
 
   private static loadMainWindow() {
-    if (!App.application.isPackaged) {
-      App.mainWindow?.loadURL(`http://localhost:${rendererAppPort}`);
+    // Determine the port: Use VITE_PORT env var if available, otherwise default (e.g., 4201)
+    const port = process.env.VITE_PORT || '4201';
+    const isDevelopment = !App.application.isPackaged;
+    const url = isDevelopment
+      ? `http://localhost:${port}` // Use dynamic port for dev
+      : join(__dirname, `../renderer/${rendererAppName}/index.html`);
+
+    console.log(`[App Class] Loading main window URL: ${url}`);
+
+    if (isDevelopment) {
+      App.mainWindow?.loadURL(url);
     } else {
-      App.mainWindow?.loadURL(
-        format({
-          pathname: join(__dirname, '..', rendererAppName, 'index.html'),
-          protocol: 'file:',
-          slashes: true,
-        })
-      );
+      App.mainWindow?.loadFile(url);
     }
   }
 

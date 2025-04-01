@@ -1,0 +1,32 @@
+{
+  "appId": "com.uno.app",
+  "productName": "Uno",
+  "directories": {
+    "output": "dist/packages"
+  },
+  "files": [
+    "dist/apps/uno-electron/**/*",
+    "dist/apps/uno/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "dist/apps/uno-electron/services",
+      "to": "services",
+      "filter": ["**/*"]
+    }
+  ],
+  "asarUnpack": [
+    "node_modules/sharp/**/*"
+  ],
+  "mac": {
+    "target": ["dmg"],
+    "category": "public.app-category.developer-tools"
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "category": "Development"
+  }
+}

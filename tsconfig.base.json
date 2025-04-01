@@ -19,7 +19,7 @@
     "customConditions": ["development"],
     "baseUrl": ".",
     "paths": {
-      "@uno/*": ["libs/src/index.ts"]
+      "@uno/indexing": ["libs/indexing/src/lib/code-chunker.js"]
     }
   }
 }
