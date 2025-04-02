@@ -10,12 +10,19 @@ interface McpConfig {
   servers: Record<string, McpServerConfig>;
 }
 
+// Define type for paths object returned by IPC
+interface TsConfigPaths { [key: string]: string[] }
+
 contextBridge.exposeInMainWorld('electron', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   platform: process.platform,
   readDirectory: (path: string) => ipcRenderer.invoke('read-directory', path),
   readFile: (path: string): Promise<string | null> => ipcRenderer.invoke('read-file', path),
   resolvePath: (relativePath: string): Promise<string> => ipcRenderer.invoke('resolve-path', relativePath),
+  
+  // Add function to get tsconfig paths
+  getTsConfigPaths: (projectRoot: string): Promise<TsConfigPaths | null> => ipcRenderer.invoke('get-tsconfig-paths', projectRoot),
+
   onFileChanged: (callback: (event: IpcRendererEvent, data: { type: string; path: string }) => void) =>
     ipcRenderer.on('file-changed', callback),
   removeFileChangedListener: (callback: (event: IpcRendererEvent, data: { type: string; path: string }) => void) =>

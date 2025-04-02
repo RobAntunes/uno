@@ -28,3 +28,5 @@ This file tracks known areas for improvement and refactoring in the Uno project.
 - chat history and persistence
 
 - github
+
+- hotkeys

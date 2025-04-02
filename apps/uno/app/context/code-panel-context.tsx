@@ -5,6 +5,10 @@ interface CodePanelContextType {
   setIsOpen: (open: boolean) => void;
   currentFile: string | null;
   setCurrentFile: (file: string | null) => void;
+  isSyncMode: boolean;
+  setIsSyncMode: (sync: boolean) => void;
+  mainContentWidth: number | null;
+  setMainContentWidth: (width: number | null) => void;
 }
 
 const CodePanelContext = createContext<CodePanelContextType | undefined>(undefined);
@@ -12,9 +16,11 @@ const CodePanelContext = createContext<CodePanelContextType | undefined>(undefin
 export function CodePanelProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [isSyncMode, setIsSyncMode] = useState(false);
+  const [mainContentWidth, setMainContentWidth] = useState<number | null>(null);
 
   return (
-    <CodePanelContext.Provider value={{ isOpen, setIsOpen, currentFile, setCurrentFile }}>
+    <CodePanelContext.Provider value={{ isOpen, setIsOpen, currentFile, setCurrentFile, isSyncMode, setIsSyncMode, mainContentWidth, setMainContentWidth }}>
       {children}
     </CodePanelContext.Provider>
   );

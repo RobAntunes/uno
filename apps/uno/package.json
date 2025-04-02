@@ -11,6 +11,7 @@
     "name": "uno"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-collapsible": "^1.1.3",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-progress": "^1.1.2",
@@ -22,6 +23,7 @@
     "@react-router/serve": "^7.2.0",
     "isbot": "^4.4.0",
     "ldrs": "^1.1.5",
+    "monaco-editor": "^0.52.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-router": "^7.2.0",

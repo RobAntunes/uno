@@ -18,8 +18,6 @@
     "target": "es2022",
     "customConditions": ["development"],
     "baseUrl": ".",
-    "paths": {
-      "@uno/indexing": ["libs/indexing/src/lib/code-chunker.js"]
-    }
+    "paths": {}
   }
 }

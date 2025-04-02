@@ -9,6 +9,8 @@ import * as os from "os";
 // import { fileURLToPath } from 'node:url'; // REMOVE - Unused
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { EventEmitter } from 'node:events'; // Import EventEmitter
+// Use named import for jsonc-parser
+import { parse } from 'jsonc-parser';
 
 // Use path alias now that webpack is configured
 import { chunkCode } from './services/indexing/chunker';
@@ -859,3 +861,45 @@ ipcMain.handle('initialize-vector-store', async () => {
     // We don't wait here, service will send 'initialized' message back
     return { success: true, message: "Initialization request sent to service." };
 });
+
+// Define a simple type for the paths object we expect
+interface TsConfigPaths { [key: string]: string[] }
+
+// --- Handler for tsconfig.json Paths --- 
+ipcMain.handle("get-tsconfig-paths", async (event: IpcMainInvokeEvent, projectRoot: string): Promise<TsConfigPaths | null> => {
+  if (!projectRoot) {
+    console.warn("[IPC:get-tsconfig-paths] Received null or empty projectRoot.");
+    return null;
+  }
+  
+  // Target the tsconfig within the specific app directory
+  const tsconfigPath = path.join(projectRoot, 'apps', 'uno', 'tsconfig.json');
+  console.log(`[IPC:get-tsconfig-paths] Attempting to read tsconfig from: ${tsconfigPath}`);
+
+  try {
+    const fileContent = await fsPromises.readFile(tsconfigPath, 'utf-8');
+    // Use named import parse function
+    const tsconfig = parse(fileContent);
+    
+    if (tsconfig && tsconfig.compilerOptions && tsconfig.compilerOptions.paths) {
+      const paths = tsconfig.compilerOptions.paths as TsConfigPaths;
+      console.log("[IPC:get-tsconfig-paths] Successfully read and found paths:", paths);
+      return paths;
+    } else {
+      console.log(`[IPC:get-tsconfig-paths] No compilerOptions.paths found in ${tsconfigPath}`);
+      return {}; // Return empty object if paths are not defined
+    }
+
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      console.warn(`[IPC:get-tsconfig-paths] tsconfig file not found at ${tsconfigPath}`);
+    } else if (error instanceof SyntaxError) { // jsonc.parse might still throw SyntaxError for major issues
+       console.error(`[IPC:get-tsconfig-paths] Syntax error parsing ${tsconfigPath}:`, error.message);
+    } else {
+      console.error(`[IPC:get-tsconfig-paths] Error reading tsconfig file at ${tsconfigPath}:`, error.message);
+    }
+    return null; // Indicate failure
+  }
+});
+
+// --- End Handler ---

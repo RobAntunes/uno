@@ -14,7 +14,6 @@
         "assets": [
           "apps/uno-electron/src/assets"
         ],
-        "externalDependencies": "none",
         "webpackConfig": "apps/uno-electron/webpack.config.js"
       },
       "configurations": {
@@ -35,7 +34,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/apps/uno-electron/services"],
       "options": {
-        "command": "mkdir -p dist/apps/uno-electron/services/indexing && node_modules/.bin/tsc apps/uno-electron/src/services/indexing/*.ts --outDir dist/apps/uno-electron/services/indexing --module esnext --moduleResolution bundler --target es2022 --skipLibCheck --sourceMap"
+        "command": "mkdir -p dist/apps/uno-electron/services/indexing && node_modules/.bin/tsc apps/uno-electron/src/services/indexing/*.ts --outDir dist/apps/uno-electron/services/indexing --module esnext --moduleResolution bundler --target es2022 --skipLibCheck --sourceMap && echo '{ \"type\": \"module\" }' > dist/apps/uno-electron/services/indexing/package.json"
       }
     },
     "build-all": {

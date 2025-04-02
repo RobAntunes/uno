@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/Button";
 import { Loader2, Search, FileText, AlertCircle, Play } from 'lucide-react';
+import { CodePanel } from './code-panel/CodePanel';
+import { useCodePanel } from '../context/code-panel-context';
+import { cn } from '../../lib/utils';
 
 interface IndexResult {
   filePath: string;
@@ -16,11 +19,15 @@ interface IndexViewProps {
   onSearch?: (query: string) => void;
 }
 
-const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
+// Renamed original component to IndexViewContent and moved logic here
+const IndexViewContent: React.FC<IndexViewProps> = ({ onSearch }) => {
   const [indexResults, setIndexResults] = useState<IndexResult[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [isIndexing, setIsIndexing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  // Get isSyncMode from context instead of local state
+  const { setIsOpen, setCurrentFile, isSyncMode } = useCodePanel(); 
 
   const startIndexing = async () => {
     setIsInitializing(true);
@@ -163,6 +170,7 @@ const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
     }
   };
 
+  // Return the JSX previously returned by IndexView
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Overall Progress Card */}
@@ -182,7 +190,6 @@ const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
             <Button 
               onClick={startIndexing} 
               disabled={isIndexing || isInitializing}
-              className="ml-4"
             >
               {isInitializing ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -206,15 +213,17 @@ const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
         </CardContent>
       </Card>
 
-      {/* Results List */}
+      {/* Results List Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Files</CardTitle>
-          <CardDescription>
-            {indexResults.length 
-              ? `${indexResults.length} file${indexResults.length !== 1 ? 's' : ''} processed`
-              : 'No files processed yet'}
-          </CardDescription>
+          <div>
+            <CardTitle className="text-lg">Files</CardTitle>
+            <CardDescription>
+              {indexResults.length 
+                ? `${indexResults.length} file${indexResults.length !== 1 ? 's' : ''} processed`
+                : 'No files processed yet'}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
@@ -223,7 +232,16 @@ const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
                 indexResults.map((result, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded-lg bg-muted/50",
+                      isSyncMode && "cursor-pointer hover:bg-muted" 
+                    )}
+                    onClick={() => {
+                      if (isSyncMode) {
+                        setCurrentFile(result.filePath);
+                        setIsOpen(true);
+                      }
+                    }}
                   >
                     {getStatusIcon(result.status)}
                     <div className="flex-1 min-w-0">
@@ -255,6 +273,17 @@ const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+// IndexView now just renders IndexViewContent and CodePanel (which is also rendered globally now, consider removing from here)
+const IndexView: React.FC<IndexViewProps> = ({ onSearch }) => {
+  return (
+    <>
+      <IndexViewContent onSearch={onSearch} />
+      {/* CodePanel is now rendered globally in app.tsx, so we remove it from here */}
+      {/* <CodePanel /> */}
+    </>
   );
 };
 

@@ -19,6 +19,9 @@ interface FileChangeData {
     path: string;
 }
 
+// Define TsConfigPaths type (should match preload and main)
+interface TsConfigPaths { [key: string]: string[] }
+
 // Augment the global Window interface
 declare global {
   interface Window {
@@ -56,6 +59,13 @@ declare global {
       removeIndexingProgressListener: (callback: (data: { filePath: string; progress: number }) => void) => void;
       removeIndexingCompleteListener: (callback: (data: { filePath: string }) => void) => void;
       removeIndexingErrorListener: (callback: (data: { filePath: string; error: string }) => void) => void;
+
+      // Add MCP Handlers types if needed
+      getMcpServers: () => Promise<any>; // Use specific type if available
+      saveMcpServers: (updatedConfig: any) => Promise<void>; // Use specific type if available
+
+      // Add the new function signature
+      getTsConfigPaths: (projectRoot: string) => Promise<TsConfigPaths | null>;
     };
   }
 }

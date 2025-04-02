@@ -22,9 +22,10 @@ import {
   // Assuming these types exist or adapting based on actual API
   // If not, define simple types like { role: string, content: string }
 } from "@llamaindex/chat-ui";
-// Use React.lazy for client-side only import
-const TerminalView = lazy(() => import("./components/terminal-view"));
 // Remove FileExplorer and related imports (useState, Button, icons)
+
+// Use React.lazy for client-side only import
+const TerminalView = lazy(() => import("./components/terminal-view")); // Import CodePanel
 
 // Define the expected shape of the route handle
 interface RouteHandle {
@@ -46,7 +47,8 @@ function isAgentRouteMatch(
 
 // Removed findAgentData function
 
-export default function App() {
+// Component to render the main App content
+function AppContent() {
   const matches = useMatches();
   // Remove file explorer state
   // const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
@@ -253,3 +255,12 @@ export default function App() {
     </>
   );
 }
+
+// Default export now just renders AppContent (Provider was removed)
+export default function App() {
+  return <AppContent />;
+}
+
+// Remember to also import CodePanel component itself somewhere, 
+// perhaps alongside AppContent or inside it if it makes sense.
+// For now, assuming CodePanel is rendered elsewhere or will be added.

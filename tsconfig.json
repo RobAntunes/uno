@@ -10,9 +10,6 @@
       "path": "./apps/uno"
     },
     {
-      "path": "./libs/indexing"
-    },
-    {
       "path": "./apps/uno-electron"
     }
   ]

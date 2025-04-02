@@ -1,6 +1,6 @@
 import { AuthProvider } from "react-oidc-context";
 import * as React from "react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Links,
   type LinksFunction,
@@ -12,16 +12,16 @@ import {
 } from "react-router-dom";
 
 import "../styles.css";
-import { AppNav } from "./app-nav";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "./components/ui/sidebar";
 import AppSidebar from "./components/ui/app-sidebar";
 import FileExplorer from "./components/file-explorer/FileExplorer";
 import { Button } from "./components/ui/Button";
-import { PanelLeftClose, PanelLeftOpen, Files } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Files, Lock, Unlock, PanelRightOpen } from "lucide-react";
 import { AgentProvider } from "./context/agent-context";
-import { CodePanelProvider } from "./context/code-panel-context";
+import { CodePanelProvider, useCodePanel } from "./context/code-panel-context";
 import { CodePanel } from "./components/code-panel/CodePanel";
+import { WorkspaceProvider } from "./context/workspace-context";
 
 export const meta: MetaFunction = () => [
   {
@@ -54,6 +54,76 @@ const cognitoAuthConfig = {
 const SIDEBAR_DEFAULT_WIDTH = 280;
 const SIDEBAR_MIN_WIDTH = 50;
 
+function MainContentLayout({ 
+  children, 
+  isFileExplorerOpen, 
+  setIsFileExplorerOpen 
+}: {
+  children: React.ReactNode;
+  isFileExplorerOpen: boolean;
+  setIsFileExplorerOpen: (open: boolean) => void;
+}) {
+  const { isSyncMode, setIsSyncMode, setIsOpen, setMainContentWidth } = useCodePanel();
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = mainContainerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const width = entry.contentRect?.width;
+        if (width) {
+          setMainContentWidth(width);
+        }
+      }
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [setMainContentWidth]);
+
+  return (
+    <AgentProvider>
+      <div ref={mainContainerRef} className="relative flex-1 h-full overflow-y-auto">
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
+            className="h-8 w-8 shrink-0"
+            title={isFileExplorerOpen ? "Hide Files" : "Show Files"}
+          >
+            <Files className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setIsSyncMode(!isSyncMode)}
+            title={isSyncMode ? "Disable Sync Mode" : "Enable Sync Mode"}
+          >
+            {isSyncMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+          </Button>
+          <Button 
+            variant="outline"
+            size="icon" 
+            className="h-8 w-8 shrink-0"
+            onClick={() => setIsOpen(true)}
+            title="Open Code Panel"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+          </Button>
+        </div>
+        {children}
+      </div>
+    </AgentProvider>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isAppSidebarCollapsed, setIsAppSidebarCollapsed] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
@@ -69,36 +139,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </head>
         <body className="h-full bg-background text-foreground flex">
           <CodePanelProvider>
-            <SidebarProvider>
-              <AppSidebar
-                isCollapsed={isAppSidebarCollapsed}
-                setIsCollapsed={setIsAppSidebarCollapsed}
-              />
+            <WorkspaceProvider>
+              <SidebarProvider>
+                <AppSidebar
+                  isCollapsed={isAppSidebarCollapsed}
+                  setIsCollapsed={setIsAppSidebarCollapsed}
+                />
 
-              {isFileExplorerOpen && (
-                <div className="w-72 border-r bg-muted/40 overflow-y-auto flex-shrink-0">
-                  <FileExplorer />
-                </div>
-              )}
+                {isFileExplorerOpen && (
+                  <div className="w-72 border-r bg-muted/40 overflow-y-auto flex-shrink-0">
+                    <FileExplorer />
+                  </div>
+                )}
 
-              <AgentProvider>
-                <div className="flex-1 h-full overflow-y-auto">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
-                    className="absolute top-2 right-2 z-20 h-8 w-8"
-                    title={isFileExplorerOpen ? "Hide Files" : "Show Files"}
-                  >
-                    <Files className="h-4 w-4" />
-                  </Button>
-
+                <MainContentLayout 
+                  isFileExplorerOpen={isFileExplorerOpen} 
+                  setIsFileExplorerOpen={setIsFileExplorerOpen}
+                >
                   {children}
-                </div>
-              </AgentProvider>
+                </MainContentLayout>
 
-              <CodePanel />
-            </SidebarProvider>
+                <CodePanel />
+              </SidebarProvider>
+            </WorkspaceProvider>
           </CodePanelProvider>
           <Toaster />
           <ScrollRestoration />
