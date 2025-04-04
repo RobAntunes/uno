@@ -2,6 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Folder, FileText, ArrowUp, AlertCircle, FilePlus, FolderPlus, RefreshCw } from 'lucide-react';
 // Trying a relative path for Button - adjust if your Shadcn setup differs
 import { Button } from '../../components/ui/Button';
+// Import the context hook
+import { useCodePanel } from '../../context/code-panel-context';
+// Import the new context hook
+import { useWorkspace } from '../../context/workspace-context';
+// Import cn utility
+import { cn } from '../../../lib/utils';
 
 // Define types matching the main process and preload script
 interface FSEntry {
@@ -88,6 +94,11 @@ const FileExplorer: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get context state, setters, and currentFile
+  const { isSyncMode, setCurrentFile, setIsOpen, currentFile: selectedFile } = useCodePanel(); // Renamed currentFile to selectedFile for clarity
+  // Get the setter from the new context
+  const { setProjectRoot } = useWorkspace();
+
   // Function to fetch directory contents
   const fetchDirectory = useCallback(async (dirPath: string) => {
     if (!window.electron?.readDirectory) {
@@ -101,16 +112,23 @@ const FileExplorer: React.FC = () => {
     try {
       const listing: DirectoryListing = await window.electron.readDirectory(dirPath);
       console.log("Received listing:", listing);
-      // Trust the path returned by the main process
       setCurrentPath(listing.path);
       setEntries(listing.entries);
+      // Set the project root only if it hasn't been set yet (on initial load)
+      // We might need a more robust way later if the user can change roots
+      // For now, assume the first successful fetch sets the root for the session.
+      if (listing.path && !sessionStorage.getItem('projectRootSet')) { 
+        console.log(`[FileExplorer] Setting project root: ${listing.path}`);
+        setProjectRoot(listing.path); // Set the root path in context
+        sessionStorage.setItem('projectRootSet', 'true'); // Mark as set for this session
+      }
     } catch (err: any) {
       console.error("Error fetching directory:", err);
       setError(err.message || 'Failed to read directory');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setProjectRoot]);
 
   // Handler for clicking on a file or directory
   const handleEntryClick = (entry: FSEntry) => {
@@ -123,9 +141,18 @@ const FileExplorer: React.FC = () => {
             fetchDirectory(entry.path);
         }
     } else {
-      // Handle file click
+      // --- Modified File Click Logic ---
       console.log(`File clicked: ${entry.path}`);
-      alert(`File selected: ${entry.name}`);
+      if (isSyncMode) {
+        console.log('Sync mode enabled, opening file in panel...');
+        setCurrentFile(entry.path); // Set the file in context
+        setIsOpen(true);           // Open the panel
+      } else {
+        // Optional: Add behavior for when sync mode is off, e.g., log only
+        console.log('Sync mode disabled, file click ignored by panel.');
+        // alert(`File selected: ${entry.name}`); // Remove or keep the alert if desired when sync is off
+      }
+      // --- End Modified File Click Logic ---
     }
   };
 
@@ -134,16 +161,11 @@ const FileExplorer: React.FC = () => {
       fetchDirectory(pathToGo);
   };
 
-  // Initial load
+  // Initial load effect (remove the timer and the check for sessionStorage here)
   useEffect(() => {
-    // Delay initial fetch slightly to potentially avoid startup race conditions
-    const timer = setTimeout(() => {
-      fetchDirectory('.');
-    }, 500); // 500ms delay
-
-    // Cleanup timer on unmount
-    return () => clearTimeout(timer);
-  }, [fetchDirectory]);
+    fetchDirectory('.'); // Fetch initial directory
+    sessionStorage.removeItem('projectRootSet'); // Clear session flag on mount/reload
+  }, [fetchDirectory]); // fetchDirectory is stable due to useCallback
 
   // Set up file change listener
   useEffect(() => {
@@ -183,7 +205,8 @@ const FileExplorer: React.FC = () => {
         };
     } else {
         console.warn("window.electron file change listener APIs are not available.");
-        return () => {}; // Return empty cleanup if APIs aren't there
+        // Return undefined instead of an empty function to satisfy linter
+        return undefined; 
     }
   }, [currentPath, fetchDirectory]); // Dependencies remain the same
 
@@ -241,37 +264,41 @@ const FileExplorer: React.FC = () => {
 
       {/* --- File/Folder Listing --- */}
       {!loading && !error && (
-        <ul className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-muted pr-1">
+        <div className="flex-grow overflow-y-auto">
           {/* Up Directory Button - Simplified logic */} 
           {showUpButton && (
-             <li key=".." className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer"
-                 onClick={() => handleEntryClick({ name: '..', path: parentPath, isDirectory: true})}>
+             <div
+               className="flex items-center p-1.5 hover:bg-muted rounded cursor-pointer"
+               onClick={() => handleEntryClick({ name: '..', path: parentPath, isDirectory: true})}>
                 <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 <span>..</span>
-              </li>
+              </div>
           )}
 
           {/* Entries */} 
           {entries.map((entry) => (
-            <li
-              key={entry.path}
-              className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer"
+            <div
+              key={entry.name}
+              className={cn(
+                "flex items-center p-1.5 hover:bg-blue-50 rounded cursor-pointer",
+                entry.path === selectedFile && "bg-blue-100"
+              )}
               onClick={() => handleEntryClick(entry)}
               title={entry.path}
             >
               {entry.isDirectory ? (
-                <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <Folder className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
               ) : (
-                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <FileText className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
               )}
               <span className="truncate">{entry.name}</span>
-            </li>
+            </div>
           ))}
           {/* Empty Directory */} 
           {entries.length === 0 && !showUpButton && !loading && !error && ( // Also check showUpButton
-             <li className="text-center text-muted-foreground p-4 text-xs">Directory is empty.</li>
+             <div className="text-center text-muted-foreground p-4 text-xs">Directory is empty.</div>
           )}
-        </ul>
+        </div>
       )}
     </div>
   );

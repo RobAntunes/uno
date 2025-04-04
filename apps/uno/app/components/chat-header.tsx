@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useAgent } from '../context/agent-context';
 import { Button } from './ui/Button'; // Assuming Button component exists
-import { PlusCircle } from 'lucide-react'; // Example icon
+import { PlusCircle } from 'lucide-react'; // Example icons
 
 export function ChatHeader() {
   const { agentName } = useAgent();
@@ -12,7 +12,7 @@ export function ChatHeader() {
         {agentName ? `Chat with ${agentName}` : 'Chat'}
       </h2>
       <div className="flex items-center gap-2">
-        {/* Add other controls here as needed */}
+        {/* Existing New Chat button */}
         <Button variant="outline" size="sm">
           <PlusCircle className="mr-2 h-4 w-4" />
           New Chat

@@ -22,7 +22,7 @@ import {
   Wrench,
   Server,
 } from "lucide-react";
-import { NavLink } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 import {
   Collapsible,
@@ -45,6 +45,12 @@ import {
 import { Separator } from "./separator";
 
 // --- START: Added for Recursive Team Structure ---
+
+// Move definitions to module scope
+const linkBaseClass = "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary";
+const activeLinkStyle = {
+  className: "bg-muted text-primary font-semibold", // Added font-semibold for active state
+};
 
 // Define the types for our hierarchical data
 export interface TeamStructureItem {
@@ -118,10 +124,9 @@ interface TeamTreeItemProps {
   item: TeamStructureItem;
   depth?: number;
   isCollapsed?: boolean; // Pass collapsed state down
-  getNavLinkClass: (props: { isActive: boolean }) => string; // Pass helper function
 }
 
-function TeamTreeItem({ item, depth = 0, isCollapsed, getNavLinkClass }: TeamTreeItemProps) {
+function TeamTreeItem({ item, depth = 0, isCollapsed }: TeamTreeItemProps) {
   const { name, path, icon: Icon, children } = item;
   const hasChildren = children && children.length > 0;
   const isAgent = isAgentNode(item, depth); // Check if it's an agent node
@@ -129,55 +134,50 @@ function TeamTreeItem({ item, depth = 0, isCollapsed, getNavLinkClass }: TeamTre
   const paddingLeft = isCollapsed || depth === 0 ? undefined : `${depth * 1.25}rem`;
 
   if (hasChildren) {
-    // If it's an agent, render only the NavLink trigger, not the collapsible content
     if (isAgent) {
-       return (
+      return (
         <SidebarMenuItem className={`w-full ${isCollapsed ? 'justify-center' : ''}`} style={{ paddingLeft }}>
-          {/* Link to agent's base path, use 'end' to only activate exactly on this path */}
-          <NavLink to={path} end className={({isActive}) => `${getNavLinkClass({isActive})} w-full ${isCollapsed ? 'justify-center' : ''}`}>
+          {/* Use Link, apply active styles via activeProps */}
+          <Link to={path} end className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
             <Icon className="h-5 w-5 flex-shrink-0" />
             {!isCollapsed && <span className="ml-2">{name}</span>}
-            {/* No chevron needed as clicking agent loads secondary panel */}
-          </NavLink>
+          </Link>
         </SidebarMenuItem>
       );
     }
 
-    // Otherwise (like "Sales" team), render the full Collapsible with children
     return (
       <Collapsible defaultOpen={depth < 2} className="group/collapsible">
         <CollapsibleTrigger asChild>
           <SidebarMenuItem className={`w-full ${isCollapsed ? 'justify-center' : ''}`} style={{ paddingLeft }}>
-            {/* Link for the team level, e.g. /teams/sales */}
-            <NavLink to={path} end={depth === 0} /* Use 'end' carefully based on routing */ className={({isActive}) => `${getNavLinkClass({isActive})} w-full ${isCollapsed ? 'justify-center' : ''}`}>
+            {/* Use Link, apply active styles via activeProps */}
+            <Link to={path} end={depth === 0} className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
               <Icon className="h-5 w-5 flex-shrink-0" />
               {!isCollapsed && <span className="flex-1 ml-2">{name}</span>}
               {!isCollapsed && <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0 transition-transform duration-200 group-[&[data-state=open]]:rotate-90" />}
-            </NavLink>
+            </Link>
           </SidebarMenuItem>
         </CollapsibleTrigger>
         <CollapsibleContent className={`overflow-hidden transition-all duration-300 ease-in-out data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down ${isCollapsed ? 'hidden' : ''}`}>
-          {/* Render children recursively */}
           {children.map((child, index) => (
             <TeamTreeItem
               key={`${path}-${child.name}-${index}`}
               item={child}
-              depth={depth + 1} // Increment depth
+              depth={depth + 1}
               isCollapsed={isCollapsed}
-              getNavLinkClass={getNavLinkClass}
             />
           ))}
         </CollapsibleContent>
       </Collapsible>
     );
   } else {
-    // Leaf nodes (like Settings, or potentially agent sub-pages if rendered differently)
     return (
-       <SidebarMenuItem className={isCollapsed ? 'my-1 justify-center' : ''} style={{ paddingLeft }}>
-         <NavLink to={path} className={getNavLinkClass}>
+      <SidebarMenuItem className={isCollapsed ? 'my-1 justify-center' : ''} style={{ paddingLeft }}>
+        {/* Use Link, apply active styles via activeProps */}
+        <Link to={path} className={linkBaseClass} activeProps={activeLinkStyle}>
           <Icon className="h-5 w-5 flex-shrink-0" />
           {!isCollapsed && <span className="ml-2">{name}</span>}
-        </NavLink>
+        </Link>
       </SidebarMenuItem>
     );
   }
@@ -200,12 +200,6 @@ interface AppSidebarProps {
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 50;
 const MAX_WIDTH = 400;
-
-// Helper function for NavLink className
-const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
-    isActive ? 'bg-muted text-primary font-semibold' : 'text-muted-foreground'
-  }`;
 
 export function AppSidebar({
   side = "left",
@@ -338,40 +332,40 @@ export function AppSidebar({
           <SidebarGroup className={isCollapsed ? 'flex flex-col items-center' : ''}>
             {!isCollapsed && <SidebarGroupLabel>Navigation</SidebarGroupLabel>}
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/dashboard" className={getNavLinkClass}>
+              <Link to="/dashboard" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <LayoutDashboard className="h-5 w-5" />
                 {!isCollapsed && <span>Dashboard</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/files" className={getNavLinkClass}>
+              <Link to="/files" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <FileText className="h-5 w-5" />
                 {!isCollapsed && <span>Files</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/project" className={getNavLinkClass}>
+              <Link to="/project" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <FolderKanban className="h-5 w-5" />
                 {!isCollapsed && <span>Project</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/data" className={getNavLinkClass}>
+              <Link to="/data" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <Database className="h-5 w-5" />
                 {!isCollapsed && <span>Data</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/codebase" className={getNavLinkClass}>
+              <Link to="/codebase" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <CodeSquare className="h-5 w-5" />
                 {!isCollapsed && <span>Codebase</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem className={isCollapsed ? 'my-1' : ''}>
-              <NavLink to="/servers" className={getNavLinkClass}>
+              <Link to="/servers" className={`${linkBaseClass} w-full ${isCollapsed ? 'justify-center' : ''}`} activeProps={activeLinkStyle}>
                 <Server className="h-5 w-5" />
                 {!isCollapsed && <span>Servers</span>}
-              </NavLink>
+              </Link>
             </SidebarMenuItem>
           </SidebarGroup>
 
@@ -386,7 +380,6 @@ export function AppSidebar({
                 item={team}
                 depth={1}
                 isCollapsed={isCollapsed} // Pass down
-                getNavLinkClass={getNavLinkClass}
               />
             ))}
           </SidebarGroup>
@@ -395,17 +388,17 @@ export function AppSidebar({
         {/* Footer/Settings Link - based on isCollapsed */}
         {!isCollapsed && (
           <div className="mt-auto p-4 border-t">
-            <NavLink to="/settings" className={getNavLinkClass}>
+            <Link to="/settings" className={`${linkBaseClass} w-full`} activeProps={activeLinkStyle}>
               <Settings className="h-5 w-5" />
               <span>Settings</span>
-            </NavLink>
+            </Link>
           </div>
         )}
         {isCollapsed && (
           <div className="mt-auto py-2 border-t w-full flex justify-center">
-            <NavLink to="/settings" className={({isActive}) => `${getNavLinkClass({isActive})} justify-center`}>
+            <Link to="/settings" className={`${linkBaseClass} justify-center`} activeProps={activeLinkStyle}>
               <Settings className="h-5 w-5" />
-            </NavLink>
+            </Link>
           </div>
         )}
       </div>

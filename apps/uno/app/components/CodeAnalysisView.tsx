@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'; // Icons for severity
+import { AlertCircle, CheckCircle, Info, TriangleAlert, ShieldAlert } from 'lucide-react'; // Icons for severity
 // Import Tabs components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"; 
+import IndexView from './IndexView';
 
 // --- Updated Types --- 
 // No location/context/severity, add analyzer/line/diagnostic
@@ -13,10 +14,14 @@ interface AnalysisResultItem {
     diagnostic?: any; // Added diagnostic
 }
 
+// NEW: Define the structure for files within an analyzer category
+interface AnalyzerFileData {
+    [filePath: string]: AnalysisResultItem[];
+}
+
+// UPDATED: AnalysisData is now categorized by analyzer name
 interface AnalysisData {
-    // Keep analysisData structure as is, assuming it matches the JSON file output 
-    // which uses filePath as key and the updated AnalysisResultItem[] as value.
-    [filePath: string]: AnalysisResultItem[]; 
+    [analyzerName: string]: AnalyzerFileData;
 }
 
 interface FileChangeData { // Re-defined here for clarity, or import if shared
@@ -50,12 +55,8 @@ const CodeAnalysisView: React.FC = () => {
             if (fileContent === null) {
                  throw new Error(`Analysis results file not found or could not be read: ${ANALYSIS_RESULTS_PATH}`);
             }
-            // Assuming the root of the JSON is the map now, handle potential metadata separately if needed
+            // Directly parse the new categorized structure
             const parsedData: AnalysisData = JSON.parse(fileContent); 
-            // Example: If JSON root was { analyzedAt: '...', results: { ... } }
-            // const fullParsedData = JSON.parse(fileContent);
-            // const parsedData: AnalysisData = fullParsedData.results; 
-            // setAnalyzedAt(fullParsedData.analyzedAt); 
             setAnalysisData(parsedData);
             
             // Get the absolute path for watcher comparison
@@ -117,63 +118,93 @@ const CodeAnalysisView: React.FC = () => {
     }, [absoluteAnalysisPath, fetchAnalysisData, loading]); // Re-run if path changes or fetch function changes
 
     // --- Memoized calculation for overview and filtered results ---
-    const { overviewSummary, codeQualityResults, dependencyResults } = useMemo(() => {
+    const { overviewSummary, categorizedResults } = useMemo(() => {
         if (!analysisData) {
-            return { overviewSummary: {}, codeQualityResults: {}, dependencyResults: {} };
+            // Return empty structure with all categories initialized
+            return { 
+                overviewSummary: {}, 
+                categorizedResults: {
+                    quality: {},
+                    security: {},
+                    performance: {},
+                    other: {}
+                }
+            }; 
         }
 
-        const summary: { [key: string]: { errors: number; warnings: number; info: number; total: number } } = {};
-        const quality: AnalysisData = {};
-        const dependencies: AnalysisData = {};
+        const summary: { [analyzerName: string]: { errors: number; warnings: number; info: number; total: number } } = {};
+        // Use a structure to hold categorized results for tabs
+        const categorized: { [category: string]: AnalysisData } = {
+            quality: {}, // Primarily 'eslint' results
+            security: {}, // 'secrets', 'dependency-vulnerability'
+            performance: {}, // Example: 'sync-fs' (can be customized)
+            other: {}, // Any other analyzers
+        };
         let totalErrors = 0;
         let totalWarnings = 0;
         let totalInfo = 0;
 
-        Object.entries(analysisData).forEach(([filePath, items]) => {
-            const fileQualityItems: AnalysisResultItem[] = [];
-            const fileDependencyItems: AnalysisResultItem[] = [];
+        // Iterate through analyzers in the data
+        Object.entries(analysisData).forEach(([analyzerName, filesMap]) => {
+            // Initialize summary for the analyzer
+            if (!summary[analyzerName]) {
+                summary[analyzerName] = { errors: 0, warnings: 0, info: 0, total: 0 };
+            }
+            
+            let category: keyof typeof categorized = 'other'; // Default category
+            if (analyzerName === 'eslint') {
+                category = 'quality';
+            } else if (analyzerName === 'secrets' || analyzerName === 'dependency-vulnerability') {
+                category = 'security';
+            } else if (analyzerName === 'sync-fs') { // Example performance category
+                category = 'performance';
+            }
+            
+            // Ensure the analyzer category exists in the categorized results
+            if (!categorized[category][analyzerName]) {
+                 categorized[category][analyzerName] = {};
+            }
 
-            items.forEach(item => {
-                // Initialize summary for the analyzer if not present
-                if (!summary[item.analyzer]) {
-                    summary[item.analyzer] = { errors: 0, warnings: 0, info: 0, total: 0 };
-                }
+            // Iterate through files for this analyzer
+            Object.entries(filesMap).forEach(([filePath, items]) => {
                 
-                summary[item.analyzer].total++;
-                if (item.type === 'error') {
-                    summary[item.analyzer].errors++;
-                    totalErrors++;
-                } else if (item.type === 'warning') {
-                    summary[item.analyzer].warnings++;
-                    totalWarnings++;
-                } else {
-                    summary[item.analyzer].info++;
-                    totalInfo++;
-                }
-
-                // Separate results for tabs
-                if (item.analyzer === 'dependency-vulnerability') {
-                     // Use a consistent key like 'package.json' for dependency results
-                     if (!dependencies['package.json']) dependencies['package.json'] = [];
-                    dependencies['package.json'].push(item);
-                } else if (item.analyzer !== 'cli' && item.analyzer !== 'CodeAnalytics Core') { // Exclude CLI/Core errors from quality tab
-                    if (!quality[filePath]) quality[filePath] = [];
-                    quality[filePath].push(item);
-                } 
-                // CLI/Core errors will appear in the overview counts but not specific tabs unless handled otherwise
+                // Add file data to the correct category
+                 categorized[category][analyzerName][filePath] = items; 
+                 
+                // Calculate summary counts for this analyzer based on items in this file
+                items.forEach(item => {
+                    summary[analyzerName].total++;
+                    if (item.type === 'error') {
+                        summary[analyzerName].errors++;
+                        totalErrors++;
+                    } else if (item.type === 'warning') {
+                        summary[analyzerName].warnings++;
+                        totalWarnings++;
+                    } else {
+                        summary[analyzerName].info++;
+                        totalInfo++;
+                    }
+                });
             });
         });
 
+        // Debug Log:
+        console.log("[CodeAnalysisView useMemo] Processed Categorized Results:", JSON.stringify(categorized, null, 2));
+
         return { 
             overviewSummary: { summary, totalErrors, totalWarnings, totalInfo }, 
-            codeQualityResults: quality, 
-            dependencyResults: dependencies 
+            categorizedResults: categorized // Return the categorized structure
         };
     }, [analysisData]);
 
     // --- Helper to get severity icon --- 
-    const getSeverityIcon = (severity: AnalysisResultItem['type']) => {
-        switch (severity) {
+    const getSeverityIcon = (type: AnalysisResultItem['type'], analyzer?: string) => {
+        if (analyzer === 'secrets-detector' || analyzer === 'dependency-vulnerability') {
+            if (type === 'error') return <ShieldAlert className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />;
+            if (type === 'warning') return <ShieldAlert className="h-4 w-4 text-yellow-600 mr-2 flex-shrink-0" />;
+        }
+
+        switch (type) {
             case 'error': return <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />;
             case 'warning': return <TriangleAlert className="h-4 w-4 text-yellow-500 mr-2 flex-shrink-0" />;
             case 'info': return <Info className="h-4 w-4 text-blue-500 mr-2 flex-shrink-0" />;
@@ -189,7 +220,7 @@ const CodeAnalysisView: React.FC = () => {
              <ul className="pl-4 pr-2 pb-2 text-xs bg-background/50">
                  {items.sort((a, b) => a.line - b.line).map((item, index) => ( // Sort by line
                      <li key={index} className="flex items-start py-1 border-t border-border/50 first:border-t-0">
-                         {getSeverityIcon(item.type)}
+                         {getSeverityIcon(item.type, item.analyzer)}
                          <div className="flex-grow">
                              <span className="text-muted-foreground mr-2">
                                  {`L${item.line}`} {/* Use line directly */}
@@ -208,27 +239,44 @@ const CodeAnalysisView: React.FC = () => {
         );
     };
 
-    // --- Renders collapsible file sections for Quality/Dependency tabs ---
-    const renderFileSections = (data: AnalysisData) => {
-        const sortedFiles = Object.keys(data).sort();
-         if (sortedFiles.length === 0) {
+    // --- Renders collapsible sections for a given category of results ---
+    // Data structure passed is: { [analyzerName: string]: { [filePath: string]: AnalysisResultItem[] } }
+    const renderFileSections = (categoryData: AnalysisData | undefined, tabName?: string) => {
+        if (!categoryData || Object.keys(categoryData).length === 0) {
              return <div className="p-4 text-center text-muted-foreground text-sm">No issues found for this category.</div>;
-         }
+        }
+        
+        // Get sorted analyzer names within the category
+        const sortedAnalyzers = Object.keys(categoryData).sort();
 
-        return sortedFiles.map((filePath) => {
-            const items = data[filePath];
-            if (!items || items.length === 0) return null; 
+        return sortedAnalyzers.map((analyzerName) => {
+            const filesMap = categoryData[analyzerName];
+            if (!filesMap || Object.keys(filesMap).length === 0) return null;
+            
+            // Get sorted file paths for this analyzer
+            const sortedFiles = Object.keys(filesMap).sort();
 
             return (
-                <details key={filePath} className="border-b border-border last:border-b-0 group" open>
-                    <summary className="flex items-center justify-between p-2 cursor-pointer hover:bg-muted text-sm font-medium list-none">
-                        <span>{filePath}</span>
-                        <span className="text-xs px-1.5 py-0.5 bg-muted rounded-full">
-                            {items.length} issue(s)
-                        </span>
-                    </summary>
-                    {renderIssueList(items)}
-                </details>
+                // Add a top-level section for the analyzer
+                <div key={analyzerName} className="mb-4 border border-border rounded">
+                    <h3 className="text-sm font-semibold p-2 bg-muted border-b border-border">{analyzerName}</h3>
+                    {sortedFiles.map((filePath) => {
+                        const items = filesMap[filePath];
+                        if (!items || items.length === 0) return null; 
+
+                        return (
+                            <details key={`${analyzerName}-${filePath}`} className="border-b border-border last:border-b-0 group" open>
+                                <summary className="flex items-center justify-between p-2 cursor-pointer hover:bg-muted/80 text-sm font-medium list-none">
+                                    <span>{filePath}</span>
+                                    <span className="text-xs px-1.5 py-0.5 bg-background rounded-full">
+                                        {items.length} issue(s)
+                                    </span>
+                                </summary>
+                                {renderIssueList(items)} {/* Use existing function to render items */}
+                            </details>
+                        );
+                    })}
+                </div>
             );
         });
     };
@@ -278,17 +326,10 @@ const CodeAnalysisView: React.FC = () => {
     // --- Render Logic (Main component render) --- 
     const renderContent = () => {
          if (loading) {
-            return <div className="p-4 text-center text-muted-foreground">Loading analysis results...</div>;
+            return <div className="p-4 text-center">Loading analysis results...</div>;
         }
         if (error) {
-            return (
-                 <div className="p-4 text-red-500 flex flex-col items-center">
-                     <AlertCircle className="h-6 w-6 mb-2" />
-                     <p className="font-semibold">Error loading results:</p>
-                     <p className="text-xs mt-1">{error}</p>
-                     {/* Add a retry button? */}
-                 </div>
-             );
+            return <div className="p-4 text-center text-red-500">{error}</div>;
         }
         if (!analysisData) {
             return <div className="p-4 text-center text-muted-foreground">No analysis results found. Run analysis first.</div>;
@@ -296,25 +337,41 @@ const CodeAnalysisView: React.FC = () => {
 
         // Tabbed Interface
         return (
-             <Tabs defaultValue="overview" className="flex-grow flex flex-col overflow-hidden">
-                 <TabsList className="shrink-0 border-b border-border rounded-none px-2 justify-start bg-muted/30">
-                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                     <TabsTrigger value="quality">Code Quality</TabsTrigger>
-                     <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
-                 </TabsList>
-                 <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-muted">
-                     <TabsContent value="overview">
-                         {renderOverview()}
-                     </TabsContent>
-                     <TabsContent value="quality">
-                         {renderFileSections(codeQualityResults)}
-                     </TabsContent>
-                     <TabsContent value="dependencies">
-                         {renderFileSections(dependencyResults)}
-                     </TabsContent>
-                 </div>
-             </Tabs>
-         );
+            <Tabs defaultValue="index" className="w-full">
+                <TabsList className="w-full justify-start">
+                    <TabsTrigger value="index">Index</TabsTrigger>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="quality">Code Quality</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                    <TabsTrigger value="performance">Performance</TabsTrigger>
+                    <TabsTrigger value="other">Other</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="index" className="mt-4">
+                    <IndexView />
+                </TabsContent>
+
+                <TabsContent value="overview" className="mt-4">
+                    {renderOverview()}
+                </TabsContent>
+
+                <TabsContent value="quality" className="mt-4">
+                    {renderFileSections(categorizedResults.quality, 'quality')}
+                </TabsContent>
+
+                <TabsContent value="security" className="mt-4">
+                    {renderFileSections(categorizedResults.security, 'security')}
+                </TabsContent>
+
+                <TabsContent value="performance" className="mt-4">
+                    {renderFileSections(categorizedResults.performance, 'performance')}
+                </TabsContent>
+
+                <TabsContent value="other" className="mt-4">
+                    {renderFileSections(categorizedResults.other, 'other')}
+                </TabsContent>
+            </Tabs>
+        );
     }
 
     return (

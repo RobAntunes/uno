@@ -11,8 +11,11 @@ import {
 } from "./components/ui/breadcrumb";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"; // Import resizable panels
 import { ChatHeader } from "./components/chat-header";
-// Remove SidebarInset import
-import { Link, Outlet, UIMatch, useMatches } from "react-router-dom";
+// Remove React Router imports
+// import { Link, Outlet, UIMatch, useMatches } from "react-router-dom";
+// Import TanStack Router components and hooks
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import type { RouteMatch } from "@tanstack/react-router";
 // Import ChatSection, ChatMessages, ChatInput and Message types
 import {
   ChatInput,
@@ -22,41 +25,45 @@ import {
   // Assuming these types exist or adapting based on actual API
   // If not, define simple types like { role: string, content: string }
 } from "@llamaindex/chat-ui";
-// Use React.lazy for client-side only import
-const TerminalView = lazy(() => import("./components/terminal-view"));
 // Remove FileExplorer and related imports (useState, Button, icons)
 
-// Define the expected shape of the route handle
-interface RouteHandle {
+// Use React.lazy for client-side only import
+const TerminalView = lazy(() => import("./components/terminal-view")); // Import CodePanel
+
+// --- Updated Types/Context Interfaces for TanStack Router ---
+// Define the expected shape of the route context (as defined in our routes)
+interface RouteContext {
   breadcrumb?: string;
   isAgentRoute?: boolean;
 }
 
-// Type guard to check if a match has a breadcrumb handle
-function hasBreadcrumb(match: UIMatch): match is UIMatch<unknown, RouteHandle> {
-  return typeof (match.handle as RouteHandle)?.breadcrumb === "string";
+// Type guard to check if a match has breadcrumb context
+function hasBreadcrumb(match: RouteMatch): match is RouteMatch & { context: RouteContext } {
+  // Check if context exists and breadcrumb is a string
+  return typeof match.context?.breadcrumb === "string";
 }
 
-// Type guard to check if a match represents an agent route
-function isAgentRouteMatch(
-  match: UIMatch,
-): match is UIMatch<unknown, RouteHandle> {
-  return (match.handle as RouteHandle)?.isAgentRoute === true;
+// Type guard to check if a match represents an agent route via context
+function isAgentRouteMatch(match: RouteMatch): match is RouteMatch & { context: RouteContext } {
+  return match.context?.isAgentRoute === true;
 }
+// --- End Updated Types/Context Interfaces ---
 
-// Removed findAgentData function
 
-export default function App() {
-  const matches = useMatches();
+// Component to render the main App content
+function AppContent() {
+  // Use TanStack Router hook to get router state
+  const routerState = useRouterState();
+  const matches = routerState.matches;
   // Remove file explorer state
   // const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
 
-  // --- Real Chat State ---
+  // --- Real Chat State (unchanged) ---
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Function to handle sending message and receiving response
+  // Function to handle sending message and receiving response (unchanged)
   const append = async (message: Message | null) => {
     if (!message || message.role !== "user") return null; // Only handle user messages
 
@@ -90,7 +97,7 @@ export default function App() {
       // Add an error message to the chat
       const errorMessage: Message = {
         role: "assistant",
-        content: `Error: ${(error as Error).message || "Unknown error"}`,
+        content: `Error: ${(error as Error).message || "Unknown error"}`,\
       };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
     } finally {
@@ -99,7 +106,7 @@ export default function App() {
     return null; // append function in chat-ui might expect null
   };
 
-  // Real chat handler conforming to chat-ui expectations
+  // Real chat handler conforming to chat-ui expectations (unchanged)
   const chatHandler = {
     messages,
     input,
@@ -110,12 +117,19 @@ export default function App() {
   };
   // --- End Real Chat State ---
 
+  // Updated breadcrumb logic using TanStack Router matches and context
   const crumbs = matches
-    .filter(hasBreadcrumb)
+    .filter(hasBreadcrumb) // Use updated type guard
     .map((match, index, arr) => {
-      const breadcrumbText = match.handle?.breadcrumb;
+      // Access breadcrumb from context
+      const breadcrumbText = match.context?.breadcrumb;
       const isLast = index === arr.length - 1;
+      // Get path from the match object (TanStack Router provides this)
       const path = match.pathname;
+
+      // Check if breadcrumbText exists before rendering
+      if (!breadcrumbText) return null;
+
       return (
         <React.Fragment key={match.id}>
           <BreadcrumbItem className="hidden md:block">
@@ -126,9 +140,11 @@ export default function App() {
                 </BreadcrumbPage>
               )
               : (
+                // Use TanStack Router's Link component
                 <BreadcrumbLink asChild>
                   <Link
                     to={path}
+                    params={match.params} // Pass params if needed by the link
                     className="text-muted-foreground hover:text-foreground"
                   >
                     {breadcrumbText}
@@ -139,15 +155,16 @@ export default function App() {
           {!isLast && <BreadcrumbSeparator className="hidden md:block" />}
         </React.Fragment>
       );
-    });
+    })
+    .filter(Boolean); // Filter out any null entries if breadcrumbText was missing
 
-  // Determine if the current route is an agent route
+  // Determine if the current route is an agent route using updated guard
   const isAgentSelected = matches.some(isAgentRouteMatch);
 
   // --- DEBUGGING START ---
   /* React.useEffect(() => {
     console.log("Current Route Matches:", matches);
-    console.log("Route Handles:", matches.map(m => m.handle));
+    console.log("Route Contexts:", matches.map(m => m.context)); // Log context instead of handle
     console.log("Is Agent Selected:", isAgentSelected);
   }, [matches, isAgentSelected]); */
   // --- DEBUGGING END ---
@@ -161,9 +178,6 @@ export default function App() {
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb>
           <BreadcrumbList>
-            {crumbs.length > 0 && crumbs[0].key !== "root" && (
-              <BreadcrumbSeparator className="hidden md:block" />
-            )}
             {crumbs}
           </BreadcrumbList>
         </Breadcrumb>
@@ -196,25 +210,6 @@ export default function App() {
                     </div>
                   </Panel>
                   <PanelResizeHandle className="h-2 bg-border hover:bg-muted-foreground/20 transition-colors" />
-                  {/* Terminal Panel */}
-                  <Panel
-                    defaultSize={25}
-                    minSize={10}
-                    maxSize={50}
-                    className="flex flex-col overflow-hidden"
-                  >
-                    {/* Make panel flex column */}
-                    {/* Fixed height, shrink-0 prevents shrinking - remove fixed height */}
-                    <Suspense
-                      fallback={
-                        <div className="w-full h-full bg-muted animate-pulse" />
-                      }
-                    >
-                      {/* Show placeholder during load */}
-                      <TerminalView /> {/* Let TerminalView fill the panel */}
-                    </Suspense>
-                  </Panel>
-                  <PanelResizeHandle className="h-2 bg-border hover:bg-muted-foreground/20 transition-colors" />
                   {/* Input Panel */}
                   <Panel
                     defaultSize={15}
@@ -243,13 +238,33 @@ export default function App() {
             </div>
           )
           : (
-            // Render the route's Outlet content when no agent is selected
-            <div className="flex-grow overflow-y-auto p-4">
-              {/* Container for scrollable route content */}
-              <Outlet />
-            </div>
+            // Render Outlet and TerminalView in a resizable panel otherwise
+            <PanelGroup direction="horizontal" className="flex-grow">
+              {/* Main Content Panel (Outlet) */}
+              <Panel defaultSize={75} minSize={30}>
+                <div className="h-full overflow-auto p-4">
+                  <Outlet /> {/* Use TanStack Router Outlet */}
+                </div>
+              </Panel>
+              <PanelResizeHandle className="w-2 bg-border hover:bg-muted-foreground/20 transition-colors" />
+              {/* Terminal Panel */}
+              <Panel defaultSize={25} minSize={20}>
+                <Suspense fallback={<div>Loading Terminal...</div>}>
+                  <TerminalView />
+                </Suspense>
+              </Panel>
+            </PanelGroup>
           )}
       </main>
     </>
   );
 }
+
+// Main App component (unchanged structure, renders AppContent)
+export default function App() {
+  return <AppContent />;
+}
+
+// Remember to also import CodePanel component itself somewhere, 
+// perhaps alongside AppContent or inside it if it makes sense.
+// For now, assuming CodePanel is rendered elsewhere or will be added.

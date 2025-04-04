@@ -1,9 +1,18 @@
 import nx from '@nx/eslint-plugin';
+import securityPlugin from 'eslint-plugin-security';
 
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
+  {
+    plugins: {
+      security: securityPlugin
+    },
+    rules: {
+      ...securityPlugin.configs.recommended.rules,
+    }
+  },
   {
     ignores: ['**/dist'],
   },

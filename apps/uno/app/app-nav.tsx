@@ -1,13 +1,23 @@
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router';
+
+// Define the type for the className function parameter
+interface NavLinkRenderProps {
+  isActive: boolean;
+  isPending: boolean;
+  isTransitioning: boolean; // Added in later versions
+}
 
 export function AppNav() {
+  // Removed the helper function
+
   return (
     <nav className="flex items-center space-x-4 py-2 px-4 bg-background border-b">
       <NavLink 
         to="/" 
         end
-        className={({ isActive }) => 
+        // Use inline function with explicit type annotation
+        className={({ isActive }: NavLinkRenderProps) => 
           `px-3 py-2 rounded-md hover:bg-muted transition-colors ${isActive ? 'font-medium bg-muted' : ''}`
         }
       >
@@ -16,7 +26,8 @@ export function AppNav() {
       <NavLink 
         to="/about" 
         end
-        className={({ isActive }) => 
+        // Use inline function with explicit type annotation
+        className={({ isActive }: NavLinkRenderProps) => 
           `px-3 py-2 rounded-md hover:bg-muted transition-colors ${isActive ? 'font-medium bg-muted' : ''}`
         }
       >
@@ -25,7 +36,8 @@ export function AppNav() {
       <NavLink 
         to="/auth" 
         end
-        className={({ isActive }) => 
+        // Use inline function with explicit type annotation
+        className={({ isActive }: NavLinkRenderProps) => 
           `px-3 py-2 rounded-md hover:bg-muted transition-colors ${isActive ? 'font-medium bg-muted' : ''}`
         }
       >
@@ -34,7 +46,8 @@ export function AppNav() {
       <NavLink 
         to="/dashboard" 
         end
-        className={({ isActive }) => 
+        // Use inline function with explicit type annotation
+        className={({ isActive }: NavLinkRenderProps) => 
           `px-3 py-2 rounded-md hover:bg-muted transition-colors ${isActive ? 'font-medium bg-muted' : ''}`
         }
       >

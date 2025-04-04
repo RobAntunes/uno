@@ -1,466 +1,868 @@
 {
-  "packages/code-analytics/src/utils.ts": [],
-  "packages/code-analytics/src/types.ts": [],
-  "packages/code-analytics/src/tree-sitter-typescript.d.ts": [],
-  "packages/code-analytics/src/index.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
+  "eslint": {
+    "packages/code-analytics/src/types.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 12,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
+    ],
+    "packages/code-analytics/src/index.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 1,
+        "type": "warning",
+        "message": "'CodeParser' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 95,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 125,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
+    ],
+    "packages/code-analytics/src/cli.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 5,
+        "type": "warning",
+        "message": "'AnalysisContext' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 6,
+        "type": "warning",
+        "message": "'DependencyVulnerabilityAnalyzer' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 10,
+        "type": "warning",
+        "message": "'Parser' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 14,
+        "type": "warning",
+        "message": "'TypeScript' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 24,
+        "type": "warning",
+        "message": "'formatResults' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 123,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 169,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 176,
+        "type": "warning",
+        "message": "'parsedArgs' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 200,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    }
-  ],
-  "packages/code-analytics/src/cli.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 5,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/main.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 70,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 107,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 123,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 135,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 170,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 241,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 295,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 364,
+        "type": "warning",
+        "message": "'e' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 5,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
+    ],
+    "packages/code-analytics/src/analyzers/types.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 8,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 6,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
+    ],
+    "packages/code-analytics/src/analyzers/syncFsOperationsAnalyzer.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 35,
+        "type": "warning",
+        "message": "'context' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 40,
-      "type": "warning",
-      "message": "Function 'runAnalysis' has a cyclomatic complexity of 17, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "runAnalysis",
-        "complexity": 17,
-        "threshold": 10
+    ],
+    "packages/code-analytics/src/analyzers/secretsAnalyzer.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 15,
+        "type": "error",
+        "message": "Unnecessary escape character: \\/. (no-useless-escape)",
+        "diagnostic": {
+          "ruleId": "no-useless-escape"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 15,
+        "type": "error",
+        "message": "Unnecessary escape character: \\+. (no-useless-escape)",
+        "diagnostic": {
+          "ruleId": "no-useless-escape"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 27,
+        "type": "error",
+        "message": "Unnecessary escape character: \\/. (no-useless-escape)",
+        "diagnostic": {
+          "ruleId": "no-useless-escape"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 27,
+        "type": "error",
+        "message": "Unnecessary escape character: \\+. (no-useless-escape)",
+        "diagnostic": {
+          "ruleId": "no-useless-escape"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 56,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "function-length",
-      "line": 41,
-      "type": "warning",
-      "message": "Function 'runAnalysis' is too long (151 lines). Maximum allowed is 50.",
-      "diagnostic": {
-        "functionName": "runAnalysis",
-        "length": 151,
-        "threshold": 50
+    ],
+    "packages/code-analytics/src/analyzers/eslintAnalyzer.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 67,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    }
-  ],
-  "packages/code-analytics/src/parser/parser.ts": [],
-  "packages/code-analytics/src/analyzers/types.ts": [],
-  "packages/code-analytics/src/analyzers/namingConvention.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'SyntaxNode'",
-      "diagnostic": {
-        "identifier": "SyntaxNode",
-        "declarationType": "import_specifier"
+    ],
+    "packages/code-analytics/src/analyzers/dependencyVulnerability.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 5,
+        "type": "warning",
+        "message": "'path' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 99,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'TreeCursor'",
-      "diagnostic": {
-        "identifier": "TreeCursor",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/root.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 15,
+        "type": "warning",
+        "message": "'AppNav' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 21,
+        "type": "warning",
+        "message": "'PanelLeftClose' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 21,
+        "type": "warning",
+        "message": "'PanelLeftOpen' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 52,
+        "type": "warning",
+        "message": "'SIDEBAR_DEFAULT_WIDTH' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 53,
+        "type": "warning",
+        "message": "'SIDEBAR_MIN_WIDTH' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/entry.server.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 23,
+        "type": "warning",
+        "message": "'loadContext' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/electron.d.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 39,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 39,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/app/agent.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 11,
+        "type": "warning",
+        "message": "Unused eslint-disable directive (no problems were reported from '@nx/enforce-module-boundaries'). (eslint)",
+        "diagnostic": {
+          "ruleId": null
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 98,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 115,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 285,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 21,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 13, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 13,
-        "threshold": 10
+    ],
+    "apps/uno/app/layouts/agent-section-layout.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 30,
+        "type": "warning",
+        "message": "'location' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 54,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 17, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 17,
-        "threshold": 10
+    ],
+    "apps/uno/app/routes/servers.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 19,
+        "type": "warning",
+        "message": "'ElectronMcpApi' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 46,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 56,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 86,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 98,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "function-length",
-      "line": 55,
-      "type": "warning",
-      "message": "Function '<anonymous>' is too long (91 lines). Maximum allowed is 50.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "length": 91,
-        "threshold": 50
+    ],
+    "apps/uno/app/components/terminal-view.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 7,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 8,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 23,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    }
-  ],
-  "packages/code-analytics/src/analyzers/functionLength.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'SyntaxNode'",
-      "diagnostic": {
-        "identifier": "SyntaxNode",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/components/CodeAnalysisView.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 13,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 38,
+        "type": "warning",
+        "message": "'analyzedAt' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 67,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 120,
+        "type": "warning",
+        "message": "'dependencyResults' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 135,
+        "type": "warning",
+        "message": "'fileQualityItems' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 136,
+        "type": "warning",
+        "message": "'fileDependencyItems' is assigned a value but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'TreeCursor'",
-      "diagnostic": {
-        "identifier": "TreeCursor",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/app/tools/terminal.tool.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 7,
+        "type": "warning",
+        "message": "'command' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 23,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/app/tools/code_analyzer.tool.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 62,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/app/api/main.preload.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 29,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno-electron/src/app/events/update.events.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 34,
+        "type": "warning",
+        "message": "'releaseDate' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 15,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 19, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 19,
-        "threshold": 10
+    ],
+    "apps/uno-electron/src/app/events/squirrel.events.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 69,
+        "type": "warning",
+        "message": "'error' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "function-length",
-      "line": 16,
-      "type": "warning",
-      "message": "Function '<anonymous>' is too long (78 lines). Maximum allowed is 50.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "length": 78,
-        "threshold": 50
+    ],
+    "apps/uno-electron/src/app/events/electron.events.ts": [
+      {
+        "analyzer": "eslint",
+        "line": 16,
+        "type": "warning",
+        "message": "'event' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    }
-  ],
-  "packages/code-analytics/src/analyzers/dependencyVulnerability.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/routes/auth/index.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 1,
+        "type": "warning",
+        "message": "'useEffect' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 2,
+        "type": "warning",
+        "message": "'useAuth' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 3,
+        "type": "warning",
+        "message": "'toast' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 4,
+        "type": "warning",
+        "message": "'Navigate' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 6,
+        "type": "warning",
+        "message": "'Quantum' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 8,
+        "type": "warning",
+        "message": "'Button' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 9,
+        "type": "warning",
+        "message": "'logo' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/components/ui/app-sidebar.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 10,
+        "type": "warning",
+        "message": "'GripVertical' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 11,
+        "type": "warning",
+        "message": "'Home' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 14,
+        "type": "warning",
+        "message": "'LogIn' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 17,
+        "type": "warning",
+        "message": "'Search' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 19,
+        "type": "warning",
+        "message": "'Sidebar' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 34,
+        "type": "warning",
+        "message": "'SidebarContent' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 36,
+        "type": "warning",
+        "message": "'SidebarGroupContent' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 38,
+        "type": "warning",
+        "message": "'SidebarMenu' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 39,
+        "type": "warning",
+        "message": "'SidebarMenuBadge' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 40,
+        "type": "warning",
+        "message": "'SidebarMenuButton' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 42,
+        "type": "warning",
+        "message": "'SidebarMenuSub' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 43,
+        "type": "warning",
+        "message": "'SidebarRail' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 197,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
       }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
+    ],
+    "apps/uno/app/components/ui/agent-sidebar.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 1,
+        "type": "warning",
+        "message": "'useParams' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 3,
+        "type": "warning",
+        "message": "'cn' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 16,
+        "type": "warning",
+        "message": "'basePath' is defined but never used. (@typescript-eslint/no-unused-vars)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-unused-vars"
+        }
       }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 29,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 23, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 23,
-        "threshold": 10
+    ],
+    "apps/uno/app/components/file-explorer/FileExplorer.tsx": [
+      {
+        "analyzer": "eslint",
+        "line": 107,
+        "type": "warning",
+        "message": "Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-explicit-any"
+        }
+      },
+      {
+        "analyzer": "eslint",
+        "line": 186,
+        "type": "error",
+        "message": "Unexpected empty arrow function. (@typescript-eslint/no-empty-function)",
+        "diagnostic": {
+          "ruleId": "@typescript-eslint/no-empty-function"
+        }
       }
-    },
-    {
-      "analyzer": "function-length",
-      "line": 30,
-      "type": "warning",
-      "message": "Function '<anonymous>' is too long (142 lines). Maximum allowed is 50.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "length": 142,
-        "threshold": 50
-      }
-    }
-  ],
-  "packages/code-analytics/src/analyzers/deadCode.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'SyntaxNode'",
-      "diagnostic": {
-        "identifier": "SyntaxNode",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'TreeCursor'",
-      "diagnostic": {
-        "identifier": "TreeCursor",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 29,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 12, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 12,
-        "threshold": 10
-      }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 62,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 16, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 16,
-        "threshold": 10
-      }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 219,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 15, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 15,
-        "threshold": 10
-      }
-    }
-  ],
-  "packages/code-analytics/src/analyzers/cyclomaticComplexity.ts": [
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'SyntaxNode'",
-      "diagnostic": {
-        "identifier": "SyntaxNode",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 1,
-      "type": "warning",
-      "message": "Unused import: 'TreeCursor'",
-      "diagnostic": {
-        "identifier": "TreeCursor",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'CodeAnalyzer'",
-      "diagnostic": {
-        "identifier": "CodeAnalyzer",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisResult'",
-      "diagnostic": {
-        "identifier": "AnalysisResult",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "dead-code",
-      "line": 2,
-      "type": "warning",
-      "message": "Unused import: 'AnalysisContext'",
-      "diagnostic": {
-        "identifier": "AnalysisContext",
-        "declarationType": "import_specifier"
-      }
-    },
-    {
-      "analyzer": "cyclomatic-complexity",
-      "line": 15,
-      "type": "warning",
-      "message": "Function '<anonymous>' has a cyclomatic complexity of 15, which exceeds the threshold of 10.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "complexity": 15,
-        "threshold": 10
-      }
-    },
-    {
-      "analyzer": "function-length",
-      "line": 16,
-      "type": "warning",
-      "message": "Function '<anonymous>' is too long (56 lines). Maximum allowed is 50.",
-      "diagnostic": {
-        "functionName": "<anonymous>",
-        "length": 56,
-        "threshold": 50
-      }
-    }
-  ],
-  "package.json": []
+    ]
+  }
 }

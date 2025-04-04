@@ -1,21 +1,26 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
-import { reactRouter } from '@react-router/dev/vite';
-import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 
 
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/uno',
   server: {
-    port: 4200,
+    port: 4201,
     host: 'localhost',
   },
   preview: {
     port: 4300,
     host: 'localhost',
   },
-  plugins: [!process.env.VITEST && reactRouter(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite(),
+    react(),
+    tailwindcss(),
+  ],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],

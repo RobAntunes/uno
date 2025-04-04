@@ -3,13 +3,22 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { AnalysisResult, AnalysisContext } from './analyzers/types';
-import { CodeAnalytics, DependencyVulnerabilityAnalyzer, CodeAnalyzer } from './index';
+import { CodeAnalytics, DependencyVulnerabilityAnalyzer } from './index';
 import path from 'path';
 import chalk from 'chalk'; // For colored output
-import fs from 'fs/promises'; // Import fs for file writing
 import { findProjectRoot } from './utils'; // Import the new utility
 import Parser from 'tree-sitter'; // Needed for dummy tree
-import { glob } from 'glob'; // Import glob
+import { glob } from 'glob'; // Use the promise-based glob directly
+import fs from 'fs/promises'; // Use promise-based fs
+import TsParser from 'tree-sitter-typescript'; // Added
+const { typescript: TypeScript } = TsParser; // Added
+
+// Define the structure for the categorized results
+interface CategorizedResults {
+  [analyzerName: string]: {
+    [filePath: string]: AnalysisResult[];
+  };
+}
 
 // Helper function to format results
 function formatResults(filePath: string, results: AnalysisResult[]): string {
@@ -38,191 +47,164 @@ function formatResults(filePath: string, results: AnalysisResult[]): string {
     return output;
 }
 
-async function runAnalysis(filePatterns: string[], outputJsonPath?: string) {
+async function runAnalysis(outputFile: string, globPattern: string) {
+  console.log('Starting analysis...');
+  const startTime = Date.now();
+  try {
+    // Use static factory method to initialize CodeAnalytics
+    const codeAnalytics = await CodeAnalytics.create(); // Assign directly
     
-    // --- Expand Glob Patterns --- 
-    let files: string[] = [];
-    // Determine project root *before* globbing to use it as cwd
-    let tempStartPath = process.cwd(); // Default if no patterns
-    if (filePatterns.length > 0) {
-        // Try to resolve the first pattern segment relative to cwd for root finding
-        // This isn't perfect but better than using the pattern directly
-        tempStartPath = path.resolve(filePatterns[0].split('/')[0]);
+    // Re-find projectRoot for path operations within this function scope
+    // and add a null check to satisfy the linter.
+    const projectRoot = await findProjectRoot(process.cwd());
+    if (!projectRoot) {
+      // This should theoretically not happen if CodeAnalytics.create() succeeded,
+      // but adding the check satisfies TypeScript.
+      throw new Error("Project root became null unexpectedly after initialization.");
     }
-    let projectRoot = await findProjectRoot(tempStartPath) ?? process.cwd(); // Find root first
-    console.log(chalk.magenta(`Using project root for glob: ${projectRoot}`)); // Log the root used for glob
+
+    console.log(`Detected project root: ${projectRoot}`);
+    const absoluteOutputFile = path.resolve(projectRoot, outputFile);
+    console.log(`Output file will be: ${absoluteOutputFile}`);
+
+    const resultsMap: CategorizedResults = {};
+    let files: string[] = [];
+    let analysisErrors = false;
 
     try {
-        // Pass projectRoot as cwd to glob
-        files = (await glob(filePatterns, { nodir: true, absolute: true, cwd: projectRoot })).map(p => path.normalize(p));
-        if (files.length === 0) {
-             console.warn(chalk.yellow(`Warning: No files matched the patterns: ${filePatterns.join(', ')} (in ${projectRoot})`));
-            process.exit(0); // Exit cleanly if no files match
-        }
-        console.log(chalk.blue(`Analyzing ${files.length} file(s)...`)); 
+      files = await glob(globPattern, { 
+          cwd: projectRoot,
+          absolute: true, 
+          nodir: true, 
+          ignore: [
+              '**/node_modules/**', 
+              '**/dist/**', 
+              '**/build/**',
+              path.relative(projectRoot, absoluteOutputFile) 
+          ], 
+      });
+      console.log(`Found ${files.length} files matching the pattern.`);
+
     } catch (err) {
-        console.error(chalk.red('Error expanding file patterns:'), err);
-        process.exit(1);
+      console.error(chalk.red('Error finding files:'), err);
+      process.exitCode = 1;
+      return;
     }
-    // --- End Expand Glob Patterns ---
 
-    console.log(chalk.blue(`Starting analysis for files: ${files.map(f => path.relative(projectRoot, f)).join(', ')}`)); // Log relative paths
-
-    // --- Determine Project Root --- (We already have it from above)
-    // let projectRoot: string | null = null; <-- Remove redundant detection
-    // if (files.length > 0) { ... } <-- Remove redundant detection
-    
-    if (!projectRoot) { // Should not happen if glob worked, but keep as safety
-        console.warn(chalk.yellow("Could not determine project root. Falling back to current working directory."));
-        projectRoot = process.cwd();
+    if (files.length === 0) {
+      console.warn(chalk.yellow('No files found matching the pattern.'));
+      // Still write an empty result file
     } else {
-        console.log(chalk.green(`Using confirmed project root: ${projectRoot}`));
-    }
-    // --- End Determine Project Root ---
+      const totalFiles = files.length;
+      let processedFiles = 0;
 
-    const codeAnalytics = new CodeAnalytics();
-    const resultsMap: { [filePath: string]: AnalysisResult[] } = {};
-    let hasErrors = false;
-    let hasWarnings = false;
-
-    for (const file of files) {
-        const absoluteFilePath = path.resolve(projectRoot, file); // Resolve relative to project root
-        console.log(chalk.cyan(`Analyzing file: ${path.relative(projectRoot, absoluteFilePath)}`)); // Log relative path
+      for (const file of files) {
+        processedFiles++;
+        const relativeFilePathForDisplay = path.relative(projectRoot, file);
+        console.log(`Analyzing file ${processedFiles}/${totalFiles}: ${relativeFilePathForDisplay}`);
+        
         try {
-            const fileResults = await codeAnalytics.analyzeFile(absoluteFilePath, projectRoot); // Pass projectRoot
-            const relativePath = path.relative(projectRoot, absoluteFilePath);
-            resultsMap[relativePath] = fileResults;
-            fileResults.forEach(result => {
-                if (result.type === 'error') hasErrors = true;
-                if (result.type === 'warning') hasWarnings = true;
-            });
-        } catch (error) {
-            console.error(chalk.red(`Error analyzing file ${file}:`), error);
-            resultsMap[path.relative(projectRoot, absoluteFilePath)] = [{
-                analyzer: 'cli',
-                message: `Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`,
-                type: 'error',
-                line: 0, // Indicate general file error
-                diagnostic: null
-            }];
-            hasErrors = true;
+          const fileResults = await codeAnalytics.analyzeFile(file);
+          if (fileResults.length > 0) {
+            // Categorize results by analyzer name
+            for (const result of fileResults) {
+              const analyzerName = result.analyzer;
+              const filePathKey = path.relative(projectRoot, file); // Use relative path for keys
+
+              if (!resultsMap[analyzerName]) {
+                resultsMap[analyzerName] = {};
+              }
+              if (!resultsMap[analyzerName][filePathKey]) {
+                resultsMap[analyzerName][filePathKey] = [];
+              }
+              resultsMap[analyzerName][filePathKey].push(result);
+            }
+          }
+        } catch (error: any) {
+          analysisErrors = true; // Mark that an error occurred
+          const analyzerName = 'analysis-error'; // Generic category for file processing errors
+          const filePathKey = path.relative(projectRoot, file);
+          console.error(chalk.red(`Error analyzing file ${relativeFilePathForDisplay}:`), error);
+
+          if (!resultsMap[analyzerName]) {
+            resultsMap[analyzerName] = {};
+          }
+          if (!resultsMap[analyzerName][filePathKey]) {
+            resultsMap[analyzerName][filePathKey] = [];
+          }
+          resultsMap[analyzerName][filePathKey].push({
+            analyzer: analyzerName,
+            line: 0,
+            type: 'error',
+            message: `Failed to analyze file: ${error.message || 'Unknown error'}`,
+            diagnostic: { rawError: String(error) },
+          });
         }
+      }
     }
 
-    // --- Run Dependency Vulnerability Check ---
-    console.log(chalk.cyan('Running dependency vulnerability check...'));
-    const depAnalyzer = codeAnalytics.getAnalyzers().find((a: CodeAnalyzer) => a instanceof DependencyVulnerabilityAnalyzer) as DependencyVulnerabilityAnalyzer | undefined;
-    if (depAnalyzer) {
-        try {
-            // Dependency analyzer needs context, including projectRoot.
-            // It doesn't need a real tree for its current logic.
-            const dummyParser = new Parser(); // Create a dummy parser instance
-            // You might need to set a language if the analyzer expects it, even if unused.
-            // Let's assume TypeScript for now if needed, but ideally, the analyzer handles null/undefined tree gracefully.
-            // dummyParser.setLanguage(/* some language object if needed */);
-            const dummyTree = dummyParser.parse(''); // Create an empty tree
+    try {
+      console.log('Writing analysis results...');
+      console.log('Final results object being written:', JSON.stringify(resultsMap, null, 2));
+      console.log(`Attempting to write to absolute path: ${absoluteOutputFile}`);
+      // Use fs.promises.writeFile directly
+      await fs.writeFile(absoluteOutputFile, JSON.stringify(resultsMap, null, 2));
+      console.log(chalk.green(`Analysis results written to ${outputFile}`));
+    } catch (err) {
+      analysisErrors = true; // Mark error if writing fails
+      console.error(chalk.red(`Error writing results file ${absoluteOutputFile}:`), err);
+    }
 
-            const context: AnalysisContext = { projectRoot }; // Pass the determined project root
-            const depResults = await depAnalyzer.analyze(dummyTree, context);
-            
-            // Use a consistent key, like 'package.json', since it relates to dependencies
-            const depKey = path.join(path.relative(projectRoot, projectRoot), 'package.json'); // Will result in 'package.json'
-            resultsMap[depKey] = [...(resultsMap[depKey] || []), ...depResults];
-            depResults.forEach(result => {
-                if (result.type === 'error') hasErrors = true;
-                if (result.type === 'warning') hasWarnings = true;
-            });
-             console.log(chalk.green('Dependency vulnerability check completed.'));
-        } catch (error) {
-            console.error(chalk.red('Error running dependency vulnerability check:'), error);
-            const depKey = path.join(path.relative(projectRoot, projectRoot), 'package.json');
-             resultsMap[depKey] = [...(resultsMap[depKey] || []), {
-                 analyzer: 'dependency-vulnerability',
-                 message: `Failed to run check: ${error instanceof Error ? error.message : String(error)}`,
-                 type: 'error',
-                 line: 0,
-                 diagnostic: null
-             }];
-             hasErrors = true;
-        }
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(2);
+    console.log(`Analysis finished in ${duration} seconds.`);
+
+    if (analysisErrors) {
+      console.error(chalk.red('Analysis completed with errors.'));
+      process.exitCode = 1;
     } else {
-        console.warn(chalk.yellow('DependencyVulnerabilityAnalyzer not found or registered.'));
+      console.log(chalk.green('Analysis completed successfully.'));
+      // process.exitCode will be 0 by default
     }
-    // --- End Dependency Vulnerability Check ---
-
-    // --- Output Results ---
-    console.log('\n--- Analysis Summary ---');
-    let totalIssues = 0;
-    for (const [filePath, fileResults] of Object.entries(resultsMap)) {
-        if (fileResults.length > 0) {
-            // Use the updated formatResults function for console output
-            console.log(formatResults(filePath, fileResults));
-            // We still need to count issues for the final summary/exit code, 
-            // but formatResults now handles the detailed printing.
-            totalIssues += fileResults.length;
-             // Update hasErrors/hasWarnings based on the results in this file
-             fileResults.forEach(result => {
-                 if (result.type === 'error') hasErrors = true;
-                 if (result.type === 'warning') hasWarnings = true;
-             });
-        }
-    }
-
-    if (totalIssues === 0) {
-        console.log(chalk.green('No issues found.'));
-    }
-    console.log('----------------------');
-
-    if (outputJsonPath) {
-        try {
-            // Resolve output path relative to the Current Working Directory, not the detected project root
-            const absoluteOutputJsonPath = path.resolve(process.cwd(), outputJsonPath); 
-            await fs.writeFile(absoluteOutputJsonPath, JSON.stringify(resultsMap, null, 2));
-            // Log the path relative to CWD for clarity
-            console.log(chalk.green(`Analysis results saved to: ${path.relative(process.cwd(), absoluteOutputJsonPath)}`));
-        } catch (error) {
-             console.error(chalk.red(`Failed to write JSON output to ${outputJsonPath}:`), error);
-        }
-    }
-    // --- End Output Results ---
-
-    // Exit with non-zero code if errors were found
-    process.exit(hasErrors ? 1 : 0);
+  } catch (error: any) {
+    console.error(chalk.red('Error during analysis setup or execution:'), error);
+    process.exitCode = 1;
+    return;
+  }
 }
 
-yargs(hideBin(process.argv))
-    .command(
-        '$0 <patterns...>', // Rename positional argument
-        'Analyze specified source code files or patterns', 
-        (yargs) => {
-            return yargs
-                .positional('patterns', { // Rename positional argument
-                    describe: 'List of files or glob patterns to analyze',
-                    type: 'string',
-                    demandOption: true,
-                })
-                .option('output-json', {
-                     alias: 'o',
-                     type: 'string',
-                     description: 'Specify a file path to output results as JSON'
-                });
-        },
-        async (argv) => {
-            const patternsInput = argv.patterns as string[] | string | undefined;
-            // Ensure patterns is an array of strings
-            const patterns: string[] = Array.isArray(patternsInput) ? patternsInput : 
-                                        (typeof patternsInput === 'string' ? [patternsInput] : []);
-            const outputJsonPath = argv.outputJson as string | undefined;
+const parsedArgs = yargs(hideBin(process.argv))
+  .command(
+    'analyze <outputFile> <globPattern>', // Define positional arguments
+    'Run code analysis on files matching the glob pattern',
+    (yargs) => {
+      return yargs
+        .positional('outputFile', { 
+          describe: 'Path to the output JSON file', 
+          type: 'string' 
+        })
+        .positional('globPattern', { 
+          describe: 'Glob pattern to match files for analysis', 
+          type: 'string' 
+        })
+    },
+    async (argv) => {
+      console.log(chalk.blue('Yargs command handler entered.'));
+      // Ensure required arguments are provided (yargs does this, but belt-and-suspenders)
+      if (!argv.outputFile || !argv.globPattern) {
+        console.error(chalk.red('Error: Output file path and glob pattern are required.'));
+        process.exit(1);
+      }
+      try {
+          await runAnalysis(argv.outputFile, argv.globPattern);
+      } catch (error: any) {
+          console.error(`Error running analysis: ${error.message}`);
+          process.exitCode = 1;
+      }
+    }
+  )
+  .demandCommand(1, 'You need at least one command before moving on')
+  .help()
+  .parseAsync(); // Execute the yargs setup asynchronously
 
-            if (patterns.length > 0) {
-                await runAnalysis(patterns, outputJsonPath); // Pass patterns
-            } else {
-                console.error(chalk.red('Error: No files or patterns specified.'));
-                process.exit(1);
-            }
-        }
-    )
-    .help()
-    .alias('h', 'help')
-    .strict()
-    .parse(); 
+// The assignment to parsedArgs makes this a statement, satisfying the linter. 
