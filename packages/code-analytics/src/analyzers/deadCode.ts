@@ -1,5 +1,5 @@
 import Parser, { SyntaxNode, TreeCursor } from 'tree-sitter';
-import { CodeAnalyzer, AnalysisResult } from './types';
+import { CodeAnalyzer, AnalysisResult, AnalysisContext } from './types';
 
 interface DeclarationInfo {
     node: SyntaxNode; // The identifier node of the declaration
@@ -12,7 +12,7 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
     name = 'dead-code';
     description = 'Identifies unused variables, functions, and imports';
 
-    async analyze(tree: Parser.Tree): Promise<AnalysisResult[]> {
+    async analyze(tree: Parser.Tree, context?: AnalysisContext): Promise<AnalysisResult[]> {
         const declarations = new Map<string, DeclarationInfo>();
         const allIdentifiers: SyntaxNode[] = [];
 
@@ -26,67 +26,88 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
         return this.generateResults(declarations);
     }
 
-    // --- Pass 1: Collect Declarations and All Identifiers --- 
+    // --- Helper to find Identifier for various Declaration Types ---
+    private _findDeclarationIdentifier(cursor: TreeCursor, nodeType: string): { identifierNode: SyntaxNode | null, identifierText: string | null } {
+        let identifierNode: SyntaxNode | null = null;
+        let identifierText: string | null = null;
+
+        if (cursor.gotoFirstChild()) {
+            do {
+                const fieldName = cursor.currentFieldName;
+                // General check for 'name' or 'alias' fields
+                if (cursor.nodeType === 'identifier' && (fieldName === 'name' || fieldName === 'alias')) {
+                    identifierNode = cursor.currentNode;
+                    identifierText = identifierNode.text;
+                    if (fieldName === 'alias') break; // Prioritize alias
+                }
+                // Specific check for namespace import identifier (doesn't always have a field name)
+                if (nodeType === 'namespace_import' && cursor.nodeType === 'identifier') {
+                     identifierNode = cursor.currentNode;
+                     identifierText = identifierNode.text;
+                     break;
+                }
+                 // Add other specific checks if needed for edge cases (e.g., parameters)
+                if (nodeType === 'parameter' && cursor.nodeType === 'identifier' && fieldName !== 'type') {
+                     identifierNode = cursor.currentNode;
+                     identifierText = identifierNode.text;
+                     break;
+                }
+
+            } while (cursor.gotoNextSibling());
+            cursor.gotoParent();
+        }
+        return { identifierNode, identifierText };
+    }
+
+    // --- Pass 1: Collect Declarations and All Identifiers (Refactored) ---
     private collectDeclarationsAndIdentifiers(
         cursor: TreeCursor,
         declarations: Map<string, DeclarationInfo>,
         allIdentifiers: SyntaxNode[]
     ) {
+        const declarationNodeTypes = [
+            'variable_declarator', 'function_declarator', 'class_declarator', 'method_definition', 'parameter',
+            'enum_declaration', 'interface_declaration', 'type_alias_declaration',
+            'import_specifier', 'namespace_import'
+        ];
+
         do {
             const node = cursor.currentNode;
             const nodeType = node.type;
-            let identifierNode: SyntaxNode | null = null;
-            let identifierText: string | null = null;
             let isTypeOnlyImport = false;
 
             // Check parent for `import type` syntax
             const parent = node.parent;
-            if (parent && parent.type === 'import_clause' && parent.firstChild?.type === 'type') {
-                 isTypeOnlyImport = true;
-            }
-            // Or check grandparent (import_statement -> import_clause -> specifier)
             const grandParent = parent?.parent;
-             if (grandParent && grandParent.type === 'import_statement' && grandParent.firstChild?.type === 'type') {
+             if ((parent && parent.type === 'import_clause' && parent.firstChild?.type === 'type') ||
+                 (grandParent && grandParent.type === 'import_statement' && grandParent.firstChild?.type === 'type')) {
                  isTypeOnlyImport = true;
             }
 
-            // --- Declaration Finding --- 
-            if (['variable_declarator', 'function_declarator', 'class_declarator', 'method_definition', 'parameter', 
-                 'enum_declaration', 'interface_declaration', 'type_alias_declaration',
-                 'import_specifier', 'namespace_import'].includes(nodeType)) 
+            // --- Declaration Finding ---
+            if (declarationNodeTypes.includes(nodeType))
             {
-                // Find the identifier associated with this declaration (logic remains similar)
-                if (cursor.gotoFirstChild()) {
-                    do {
-                         const fieldName = cursor.currentFieldName;
-                         if (cursor.nodeType === 'identifier' && (fieldName === 'name' || fieldName === 'alias' || nodeType === 'namespace_import')) {
-                            identifierNode = cursor.currentNode;
-                            identifierText = identifierNode.text;
-                            if (fieldName === 'alias' || nodeType === 'namespace_import') break; 
-                         }
-                     } while (cursor.gotoNextSibling());
-                     cursor.gotoParent();
-                 }
+                 // Use helper to find the identifier
+                 const { identifierNode, identifierText } = this._findDeclarationIdentifier(cursor, nodeType);
+
                  // Add to declarations map if found
                  if (identifierNode && identifierText && !declarations.has(identifierText)) {
-                      // If it's an import specifier AND part of `import type`, mark usedAsType initially
                       const initialUsedAsType = (nodeType === 'import_specifier' || nodeType === 'namespace_import') && isTypeOnlyImport;
-                      declarations.set(identifierText, { 
-                          node: identifierNode, 
-                          declarationType: nodeType, 
-                          usedAtRuntime: false, 
-                          // Set initial usedAsType flag based on `import type` check
-                          usedAsType: initialUsedAsType 
+                      declarations.set(identifierText, {
+                          node: identifierNode,
+                          declarationType: nodeType,
+                          usedAtRuntime: false,
+                          usedAsType: initialUsedAsType
                       });
                  }
             }
 
-            // --- Identifier Collection --- 
+            // --- Identifier Collection ---
             if (node.type === 'identifier') {
                 allIdentifiers.push(node);
             }
 
-            // --- Traversal --- 
+            // --- Traversal ---
             if (cursor.gotoFirstChild()) {
                 this.collectDeclarationsAndIdentifiers(cursor, declarations, allIdentifiers);
                 cursor.gotoParent();
@@ -103,8 +124,6 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
              const name = idNode.text;
              const declarationInfo = declarations.get(name);
              
-             // Check if this identifier node refers to a known declaration 
-             // AND is not the declaration identifier itself
              if (declarationInfo && !(idNode.startIndex === declarationInfo.node.startIndex && idNode.endIndex === declarationInfo.node.endIndex)) { 
                  // Check for type usage
                  if (this.isTypeUsageContext(idNode)) {
@@ -121,6 +140,7 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
 
     // Helper to check if identifier is used only in a type context
     private isTypeUsageContext(identifierNode: SyntaxNode): boolean {
+        // Removed logging
         // Check if the node itself is classified as a type identifier
         if (identifierNode.type === 'type_identifier') {
              return true;
@@ -131,6 +151,7 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
              const parent: SyntaxNode | null = current.parent;
              if (!parent) break;
              const parentType = parent.type;
+             // Removed logging
 
              // Check specific type-related parent nodes
              if ([
@@ -141,25 +162,28 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
                  'type_predicate', 'readonly_type',
                  'typeof_expression'
                  ].includes(parentType)) {
+                 // Removed logging
                  return true; 
              }
              
              // Check if identifier is part of a type alias, interface, enum declaration body
              if (['type_alias_declaration', 'interface_declaration', 'enum_declaration'].includes(parentType)) {
                 const nameNode = parent.firstNamedChild;
-                // Ensure it's not the name node being checked
                 if (!nameNode || !(nameNode.startIndex === identifierNode.startIndex && nameNode.endIndex === identifierNode.endIndex)) {
+                    // Removed logging
                     return true; 
                 }
              }
 
              // Check for Traversal Stop Boundary SECOND
              if (['statement_block', 'class_body', 'object', 'function_declaration', 'variable_declarator', 'lexical_declaration', 'import_statement'].includes(parentType)) {
+                 // Removed logging
                  break;
              }
              
              current = parent;
          }
+         // Removed logging
          return false;
     }
 
@@ -229,25 +253,25 @@ export class DeadCodeAnalyzer implements CodeAnalyzer {
         return true;
     }
 
-    // --- Pass 3: Generate results for unused declarations (Moved and Modified) --- 
+    // --- Pass 3: Generate results for unused declarations ---
     private generateResults(declarations: Map<string, DeclarationInfo>): AnalysisResult[] {
         const results: AnalysisResult[] = [];
         for (const [name, { node, usedAtRuntime, usedAsType, declarationType }] of declarations.entries()) {
+             // Removed logging
+
             // Report only if not used at runtime AND not used as type
-            // AND it's NOT an import (TEMPORARY FIX for type-only import issues)
-            if (!usedAtRuntime && !usedAsType && !name.startsWith('_') && 
-                declarationType !== 'import_specifier' && declarationType !== 'namespace_import') 
-            {
+            if (!usedAtRuntime && !usedAsType && !name.startsWith('_')) {
+                 // Removed logging
                  const nodeTypeClean = declarationType.replace(/_declarator|_declaration|_definition|_specifier|_import/g, '') || 'symbol';
                  results.push({
-                    type: 'dead-code',
-                    severity: 'warning',
+                    analyzer: this.name,
+                    line: node.startPosition.row + 1,
+                    type: 'warning',
                     message: `Unused ${nodeTypeClean}: '${name}'`,
-                    location: {
-                        start: { row: node.startPosition.row, column: node.startPosition.column },
-                        end: { row: node.endPosition.row, column: node.endPosition.column }
-                    },
-                    context: { declarationType }
+                    diagnostic: { 
+                        identifier: name,
+                        declarationType: declarationType 
+                    }
                 });
             }
         }

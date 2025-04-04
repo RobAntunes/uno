@@ -1,5 +1,5 @@
 import Parser, { SyntaxNode, TreeCursor } from 'tree-sitter';
-import { CodeAnalyzer, AnalysisResult } from './types';
+import { CodeAnalyzer, AnalysisResult, AnalysisContext } from './types';
 
 // Basic regex for checks
 const CAMEL_CASE_REGEX = /^[a-z]+([A-Z][a-z\d]*)*$/;
@@ -12,7 +12,7 @@ export class NamingConventionAnalyzer implements CodeAnalyzer {
     name = 'naming-convention';
     description = 'Checks for standard naming conventions (camelCase, PascalCase, UPPER_SNAKE_CASE for const)';
 
-    async analyze(tree: Parser.Tree): Promise<AnalysisResult[]> {
+    async analyze(tree: Parser.Tree, context?: AnalysisContext): Promise<AnalysisResult[]> {
         const results: AnalysisResult[] = [];
         this.checkNamingRecursive(tree.walk(), results);
         return results;
@@ -119,13 +119,16 @@ export class NamingConventionAnalyzer implements CodeAnalyzer {
                      }
 
                      if (!isValid) {
+                         const expectedFormatDescription = expectedPattern.charAt(0).toUpperCase() + expectedPattern.slice(1);
                          results.push({
-                             type: 'naming-convention',
-                             severity: 'info', 
-                             message: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} '${nameToCheck}' should be in ${expectedPattern}`,
-                             location: {
-                                 start: { row: identifierNode.startPosition.row, column: identifierNode.startPosition.column },
-                                 end: { row: identifierNode.endPosition.row, column: identifierNode.endPosition.column }
+                             analyzer: this.name,
+                             line: node.startPosition.row + 1,
+                             type: 'warning',
+                             message: `Naming convention violation for ${entityType} '${nameToCheck}': Expected format ${expectedFormatDescription}.`,
+                             diagnostic: {
+                                 identifier: nameToCheck,
+                                 entityType: entityType,
+                                 expectedFormat: expectedFormatDescription
                              }
                          });
                      }

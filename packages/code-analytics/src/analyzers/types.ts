@@ -1,18 +1,20 @@
 import Parser from 'tree-sitter';
 
 export interface AnalysisResult {
-    type: string;
-    severity: 'info' | 'warning' | 'error';
+    type: 'error' | 'warning' | 'info';
     message: string;
-    location?: {
-        start: { row: number; column: number };
-        end: { row: number; column: number };
-    };
-    context?: Record<string, any>;
+    analyzer: string;
+    line: number;
+    diagnostic?: any;
+}
+
+export interface AnalysisContext {
+    filePath?: string;
+    projectRoot?: string;
 }
 
 export interface CodeAnalyzer {
-    analyze(tree: Parser.Tree): Promise<AnalysisResult[]>;
+    analyze(tree: Parser.Tree, context?: AnalysisContext): Promise<AnalysisResult[]>;
     name: string;
     description: string;
 } 

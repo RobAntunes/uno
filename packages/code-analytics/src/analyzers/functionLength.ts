@@ -1,5 +1,5 @@
 import Parser, { SyntaxNode, TreeCursor } from 'tree-sitter';
-import { CodeAnalyzer, AnalysisResult } from './types';
+import { CodeAnalyzer, AnalysisResult, AnalysisContext } from './types';
 
 const MAX_FUNCTION_LINES = 50; // Configurable threshold
 
@@ -7,7 +7,7 @@ export class FunctionLengthAnalyzer implements CodeAnalyzer {
     name = 'function-length';
     description = `Checks for functions/methods exceeding ${MAX_FUNCTION_LINES} lines.`;
 
-    async analyze(tree: Parser.Tree): Promise<AnalysisResult[]> {
+    async analyze(tree: Parser.Tree, context?: AnalysisContext): Promise<AnalysisResult[]> {
         const results: AnalysisResult[] = [];
         this.findLongFunctions(tree.walk(), results);
         return results;
@@ -71,14 +71,15 @@ export class FunctionLengthAnalyzer implements CodeAnalyzer {
 
                 if (lineCount > MAX_FUNCTION_LINES) {
                     results.push({
-                        type: 'function-length',
-                        severity: 'warning',
-                        message: `Function/Method '${functionName}' is too long (${lineCount} lines, max ${MAX_FUNCTION_LINES}). Consider refactoring.`,
-                        location: {
-                            start: { row: node.startPosition.row, column: node.startPosition.column }, // Report at function start
-                            end: { row: node.startPosition.row, column: node.startPosition.column + functionName.length } // Approx end of name
-                        },
-                        context: { lineCount, functionName }
+                        analyzer: this.name,
+                        line: node.startPosition.row + 1,
+                        type: 'warning',
+                        message: `Function '${functionName}' is too long (${lineCount} lines). Maximum allowed is ${MAX_FUNCTION_LINES}.`,
+                        diagnostic: {
+                            functionName: functionName,
+                            length: lineCount,
+                            threshold: MAX_FUNCTION_LINES
+                        }
                     });
                 }
             }
