@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+// Import useParams from the generated route definition
+import { Route } from '../routes/teams.$teamId.$agentId.index';
 
 export default function AgentIndexPage() {
-    const { teamId, agentId } = useParams<{ teamId: string; agentId: string }>();
+    // Use the type-safe params from the route
+    const { teamId, agentId } = Route.useParams();
 
     return (
         <div>

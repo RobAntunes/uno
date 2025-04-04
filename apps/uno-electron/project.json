@@ -51,8 +51,7 @@
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "nx serve uno",
-          "wait-on http://localhost:4201 && nx run uno-electron:build-all && electron dist/apps/uno-electron/main.js"
+          "wait-on -t 30000 -v http://localhost:4201/index.html && nx run uno-electron:build-all && electron dist/apps/uno-electron/main.js"
         ],
         "parallel": true
       }

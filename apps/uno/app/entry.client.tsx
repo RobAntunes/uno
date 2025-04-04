@@ -4,15 +4,25 @@
  * For more information, see https://reactrouter.com/explanation/special-files#entryclienttsx
  */
 
-import { HydratedRouter } from "react-router/dom";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
+import { createRouter, RouterProvider } from '@tanstack/react-router';
+
+import { routeTree } from './routeTree.gen';
+
+const router = createRouter({ routeTree });
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
+}
 
 startTransition(() => {
   hydrateRoot(
-    document,
+    document.getElementById('root')!,
     <StrictMode>
-      <HydratedRouter />
+      <RouterProvider router={router} />
     </StrictMode>,
   );
 });
